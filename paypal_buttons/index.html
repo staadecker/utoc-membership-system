@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<!--  COPY THE CODE FROM HERE INTO SQUARESPACE-->
+<form id="membership_form">
+    <div id="infoTab">
+        <h2>Info</h2>
+        <p><label for="firstName">First Name *</label></p>
+        <p><input placeholder="First name..." id="firstName" type="text" required></p>
+        <p><label for="lastName">Last Name *</label></p>
+        <p><input placeholder="Last name..." id="lastName" type="text" required></p>
+        <p><label for="school">School</label></p>
+        <p><input placeholder="School..." id="school" type="text"></p>
+
+        <button onclick="toPayment()">Next</button>
+    </div>
+
+    <div id="paymentTab" style="display: none">
+        <h2>Payment</h2>
+        <p><label for="membership_type">Choose your membership type:</label></p>
+
+        <p><select name="membership_type" id="membership_type">
+            <option value="20">Student Membership $20.00 CAD</option>
+            <option value="30">Regular Membership $30.00 CAD</option>
+            <option value="40">Family Membership $40.00 CAD</option>
+            <option value="10">Summer Membership $10.00 CAD</option>
+        </select></p>
+
+        <div id="paypal-button-container"></div>
+    </div>
+</form>
+
+
+
+<script src="https://www.paypal.com/sdk/js?client-id=AVhTs5Ui8fjSnR5-CH-IZ2_NQvgyFYZHUEW-tYaBZKQS61gnrpc9rjc_4bVldcQklV1WPtswTRG_B-Hc&currency=CAD"
+        data-sdk-integration-source="button-factory"></script>
+
+<!-- COPY THE CODE UNTIL HERE INTO SQUARESPACE -->
+
+<script src="script.js" type="text/javascript"></script>
+<link rel="stylesheet" href="style.css">
+
+</body>
+</html>
