@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<label for="membership_type">Choose your membership type:</label>
+
+<select name="membership_type" id="membership_type">
+    <option value="20">Student Membership $20.00 CAD</option>
+    <option value="30">Regular Membership $30.00 CAD</option>
+    <option value="40">Family Membership $40.00 CAD</option>
+    <option value="10">Summer Membership $10.00 CAD</option>
+</select>
+
+<div id="paypal-button-container"></div>
+
+<script src="https://www.paypal.com/sdk/js?client-id=AVhTs5Ui8fjSnR5-CH-IZ2_NQvgyFYZHUEW-tYaBZKQS61gnrpc9rjc_4bVldcQklV1WPtswTRG_B-Hc&currency=CAD" data-sdk-integration-source="button-factory"></script>
+<script>
+  const dropdown =   document.getElementById("membership_type")
+  paypal.Buttons({
+    style: {
+      shape: 'rect',
+      color: 'blue',
+      layout: 'vertical',
+      label: 'paypal',
+
+    },
+    createOrder: function(data, actions) {
+      return actions.order.create({
+        purchase_units: [{
+          amount: {
+            value: dropdown.options[dropdown.selectedIndex].value
+          }
+        }]
+      });
+    },
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        alert('Transaction completed by ' + details.payer.name.given_name + '!');
+      });
+    }
+  }).render('#paypal-button-container');
+</script>
+</body>
+</html>
