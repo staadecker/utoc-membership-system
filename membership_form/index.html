@@ -7,21 +7,21 @@
 <body>
 
 <!--  COPY THE CODE FROM HERE INTO SQUARESPACE-->
-<form id="membership_form">
+<form id="membership_form" action="http://localhost" method="post">
     <div id="infoTab">
         <h2>Info</h2>
         <p><label for="firstName">First Name *</label></p>
-        <p><input placeholder="First name..." id="firstName" type="text" required></p>
+        <p><input placeholder="First name..." id="firstName" name="firstName" type="text" required></p>
         <p><label for="lastName">Last Name *</label></p>
-        <p><input placeholder="Last name..." id="lastName" type="text" required></p>
+        <p><input placeholder="Last name..." id="lastName" name="lastName" type="text" required></p>
         <p><label for="school">School</label></p>
-        <p><input placeholder="School..." id="school" type="text"></p>
+        <p><input placeholder="School..." id="school" name="school" type="text"></p>
         <p><label for="program">Program & College (if you are a UofT student)</label></p>
-        <p><input id="program" type="text"></p>
+        <p><input id="program" type="text" name="programAndCollege"></p>
         <p><label for="email">Email * (we will notify you of events and trips using this email)</label></p>
-        <p><input id="email" type="email" required></p>
+        <p><input id="email" type="email"  name="email" required></p>
         <p><label for="foundUtoc">How did you find UTOC? </label></p>
-        <p><input id="foundUtoc" type="text"></p>
+        <p><input id="foundUtoc" name="foundUtoc" type="text"></p>
         <p>Are you interested in family style events? *</p>
         <input type="radio" id="yes" value="yes" name="familyStyle" required>
         <label for="yes">Yes</label><br>
@@ -44,7 +44,7 @@
             <option value="10">Summer Membership $10.00 CAD</option>
         </select></p>
 
-        <input type="hidden" id="orderId">
+        <input type="hidden" id="orderId" name="orderId">
 
         <div id="paypal-button-container"></div>
     </div>
@@ -57,18 +57,14 @@
         data-sdk-integration-source="button-factory"></script>
 
 <script>
-  const dropdown = document.getElementById("membership_type")
-  const membershipForm = document.getElementById("membership_form")
-  const infoTab = document.getElementById("infoTab");
-  const paymentTab = document.getElementById("paymentTab")
-  const orderIdField = document.getElementById("orderId")
+  const membershipForm = document.getElementById("membership_form");
 
   function toPayment() {
     if (!membershipForm.checkValidity()) return;
     // Hide the current tab:
-    infoTab.style.display = "none";
+    document.getElementById("infoTab").style.display = "none";
     // Display the next tab
-    paymentTab.style.display = "inline";
+    document.getElementById("paymentTab").style.display = "inline";
   }
 
   paypal.Buttons({
@@ -80,22 +76,23 @@
 
     },
     createOrder: function (data, actions) {
+      const typeDropdown = document.getElementById("membership_type");
+
       return actions.order.create({
         purchase_units: [{
           amount: {
-            value: dropdown.options[dropdown.selectedIndex].value
+            value: typeDropdown.options[typeDropdown.selectedIndex].value
           }
         }]
       });
     },
     onApprove: function (data) {
-      orderIdField.value = data.id;
+      document.getElementById("orderId").value = data.orderID;
       membershipForm.submit();
     }
   }).render('#paypal-button-container');
 
 </script>
-
 <!-- COPY THE CODE UNTIL HERE INTO SQUARESPACE -->
 
 </body>
