@@ -9,3 +9,5 @@
 # The node_modules folder contains the libraries used by node.
 # It is auto-created when you run "npm install"
 */node_modules
+
+*/.env

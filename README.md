@@ -24,3 +24,7 @@ The payment buttons will trigger `on_payment_complete.py` which will:
 ### Expired memberships
 
 - Notify members whose membership expired
+
+### Libraries used
+
+- https://www.npmjs.com/package/google-spreadsheet

@@ -1,3 +1,4 @@
+require("dotenv").config()
 const express = require('express')
 const {wrapper} = require("./cloud_function")
 const app = express();
