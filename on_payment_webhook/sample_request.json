@@ -11,10 +11,7 @@
     },
     "seller_protection": {
       "status": "ELIGIBLE",
-      "dispute_categories": [
-        "ITEM_NOT_RECEIVED",
-        "UNAUTHORIZED_TRANSACTION"
-      ]
+      "dispute_categories": ["ITEM_NOT_RECEIVED", "UNAUTHORIZED_TRANSACTION"]
     },
     "update_time": "2019-02-14T21:49:58Z",
     "create_time": "2019-02-14T21:49:58Z",
