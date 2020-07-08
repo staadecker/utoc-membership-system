@@ -14,6 +14,8 @@
     "prettier": "^2.0.5"
   },
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.2"
+    "@paypal/checkout-server-sdk": "^1.0.2",
+    "google-spreadsheet": "^3.0.11",
+    "moment": "^2.27.0"
   }
 }

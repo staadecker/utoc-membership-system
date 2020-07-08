@@ -13,12 +13,26 @@
 require("dotenv").config(); // Used during testing to load environment variables. See https://www.npmjs.com/package/dotenv.
 
 const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
+const { GoogleSpreadsheet } = require("google-spreadsheet");
+const moment = require("moment");
 
 const EXPECTED_PRICES = {
-  "student-20$": 20,
-  "regular-30$": 30,
-  "family-40$": 40,
-  "summer-10$": 10,
+  "student-20$": {
+    amount: 20,
+    months: 12,
+  },
+  "regular-30$": {
+    amount: 30,
+    months: 12,
+  },
+  "family-40$": {
+    amount: 40,
+    months: 12,
+  },
+  "summer-10$": {
+    amount: 10,
+    months: 4,
+  },
 };
 
 /**
@@ -38,6 +52,26 @@ const getPayPalClient = () => {
   );
 
   return new PayPalCheckoutSDK.core.PayPalHttpClient(environment);
+};
+
+const convertToGoogleSheetsTimeStamp = (moment) =>
+  (moment.unix() + 2209161600) / 86400;
+
+/**
+ *
+ */
+const getGoogleSheet = async () => {
+  const doc = new GoogleSpreadsheet(process.env.DB_SPREADSHEET_ID);
+
+  if (process.env.ENVIRONMENT === "development") {
+    await doc.useServiceAccountAuth(require("./creds.json"));
+  } else {
+    throw Error("Unimplemented");
+  }
+
+  await doc.loadInfo();
+
+  return doc.sheetsByIndex[1];
 };
 
 /**
@@ -68,6 +102,10 @@ const isRequestValid = (req) => {
   return true;
 };
 
+const getDependencies = async () => {
+  return { payPalClient: getPayPalClient(), sheet: await getGoogleSheet() };
+};
+
 exports.main = async (req, res) => {
   console.log("Received request!");
 
@@ -78,6 +116,8 @@ exports.main = async (req, res) => {
     return;
   }
 
+  const { payPalClient, sheet } = await getDependencies();
+
   const orderID = req.body.orderID;
 
   const getOrderRequest = new PayPalCheckoutSDK.orders.OrdersGetRequest(
@@ -86,7 +126,7 @@ exports.main = async (req, res) => {
 
   let order;
   try {
-    order = await getPayPalClient().execute(getOrderRequest);
+    order = await payPalClient.execute(getOrderRequest);
   } catch (e) {
     res
       .status(500)
@@ -102,8 +142,11 @@ exports.main = async (req, res) => {
     return;
   }
 
-  const expectedPayment = EXPECTED_PRICES[req.body.membership_type];
-  const authorizedPayment = parseInt(order.result.purchase_units[0].amount.value);
+  const membershipType = EXPECTED_PRICES[req.body.membership_type];
+  const expectedPayment = membershipType.amount;
+  const authorizedPayment = parseInt(
+    order.result.purchase_units[0].amount.value
+  );
 
   if (expectedPayment !== authorizedPayment) {
     console.log(
@@ -124,7 +167,7 @@ exports.main = async (req, res) => {
   );
 
   try {
-    await getPayPalClient().execute(captureOrderRequest);
+    // await payPalClient.execute(captureOrderRequest); TODO
   } catch (e) {
     console.log("Error. Failed to capture the payment.");
     console.error(e);
@@ -136,5 +179,32 @@ exports.main = async (req, res) => {
     throw e;
   }
 
-  res.sendStatus(200);
+  const creationTime = moment();
+  const expiry = moment(creationTime).add(membershipType.months, "months");
+  const data = {
+    ...req.body,
+    creationTime: convertToGoogleSheetsTimeStamp(creationTime),
+    inGoogleGroup: false,
+    expiry: convertToGoogleSheetsTimeStamp(expiry),
+  };
+
+  const row = await sheet.addRow(data);
+
+  for (let key in req.body) {
+    if (req.body.hasOwnProperty(key) && !row.hasOwnProperty(key)) {
+      console.log(
+        `Missing parameter '${key}' in Google Sheet database header.`
+      );
+      res
+        .status(500)
+        .send(
+          getUserFriendlyErrorMessage(
+            `Missing parameter '${key}' in Google Sheet database header.`
+          )
+        );
+      return;
+    }
+  }
+
+  res.redirect("https://utoc.ca/membership-success");
 };
