@@ -4,18 +4,24 @@
   "main": "local_test_server.js",
   "private": true,
   "scripts": {
-    "start": "functions-framework --target=main"
+    "start": "functions-framework --target=main",
+    "prettier": "prettier --write .",
+    "test": "jest"
   },
   "author": "Martin Staadecker",
   "license": "MIT",
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.6.0",
     "dotenv": "^8.2.0",
-    "prettier": "^2.0.5"
+    "prettier": "^2.0.5",
+    "jest": "^26.1.0"
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.2",
     "google-spreadsheet": "^3.0.11",
     "moment": "^2.27.0"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

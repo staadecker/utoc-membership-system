@@ -16,7 +16,7 @@ const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
 
-const EXPECTED_PRICES = {
+const MEMBERSHIP_INFO = {
   "student-20$": {
     amount: 20,
     months: 12,
@@ -34,6 +34,16 @@ const EXPECTED_PRICES = {
     months: 4,
   },
 };
+
+/**
+ * A custom error type that supports a status code
+ */
+class ErrorWithStatus extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
 
 /**
  *
@@ -58,7 +68,8 @@ const convertToGoogleSheetsTimeStamp = (moment) =>
   (moment.unix() + 2209161600) / 86400;
 
 /**
- *
+ * Returns the google sheet with the ID specified in the environment variable.
+ * Authentication is performed through a service account key file for development ("creds.json")
  */
 const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(process.env.DB_SPREADSHEET_ID);
@@ -80,46 +91,29 @@ const getGoogleSheet = async () => {
 const getUserFriendlyErrorMessage = (details) =>
   `Oops! Something went wrong. Please contact UTOC.\n Details: ${details}`;
 
-const isRequestValid = (req) => {
-  if (req.method !== "POST") {
-    console.log("Error. Invalid request. Not using POST method");
-    return false;
-  }
+/**
+ * This function verifies that the request has the right format. If not, it throws.
+ */
+const validateRequest = (req) => {
+  if (req.method !== "POST")
+    throw new ErrorWithStatus("Invalid request. Not using POST method", 400);
 
-  if (typeof req.body.orderID !== "string") {
-    console.log("Error. No orderID contained in request.");
-    return false;
-  }
+  if (typeof req.body.orderID !== "string")
+    throw new ErrorWithStatus("No orderID contained in request.", 400);
 
   if (
     typeof req.body.membership_type !== "string" ||
-    !Object.keys(EXPECTED_PRICES).includes(req.body.membership_type)
-  ) {
-    console.log("Error. No valid membership_type contained in request.");
-    return false;
-  }
+    !Object.keys(MEMBERSHIP_INFO).includes(req.body.membership_type)
+  )
+    throw new ErrorWithStatus(
+      "No valid membership_type contained in request.",
+      400
+    );
 
-  return true;
+  return { membershipInfo: MEMBERSHIP_INFO[req.body.membership_type] };
 };
 
-const getDependencies = async () => {
-  return { payPalClient: getPayPalClient(), sheet: await getGoogleSheet() };
-};
-
-exports.main = async (req, res) => {
-  console.log("Received request!");
-
-  if (!isRequestValid(req)) {
-    res
-      .status(400)
-      .send(getUserFriendlyErrorMessage("Request validation error."));
-    return;
-  }
-
-  const { payPalClient, sheet } = await getDependencies();
-
-  const orderID = req.body.orderID;
-
+const capturePayment = async (orderID, membershipInfo, payPalClient) => {
   const getOrderRequest = new PayPalCheckoutSDK.orders.OrdersGetRequest(
     orderID
   );
@@ -128,22 +122,14 @@ exports.main = async (req, res) => {
   try {
     order = await payPalClient.execute(getOrderRequest);
   } catch (e) {
-    res
-      .status(500)
-      .send(
-        getUserFriendlyErrorMessage(
-          "Failed to retrieve your PayPal Order given the provided ID."
-        )
-      );
-    console.log(
-      "Error. Failed to retrieve PayPal Order with the given order id."
-    );
     console.error(e);
-    return;
+    throw new ErrorWithStatus(
+      "Failed to retrieve your PayPal Order given the provided ID.",
+      500
+    );
   }
 
-  const membershipType = EXPECTED_PRICES[req.body.membership_type];
-  const expectedPayment = membershipType.amount;
+  const expectedPayment = membershipInfo.amount;
   const authorizedPayment = parseInt(
     order.result.purchase_units[0].amount.value
   );
@@ -152,14 +138,10 @@ exports.main = async (req, res) => {
     console.log(
       `Received payment (${authorizedPayment}$) doesn't match expected payment (${expectedPayment}$).`
     );
-    res
-      .status(400)
-      .send(
-        getUserFriendlyErrorMessage(
-          "Received payment doesn't match expected payment."
-        )
-      );
-    return;
+    throw new ErrorWithStatus(
+      "Received payment doesn't match expected payment.",
+      400
+    );
   }
 
   const captureOrderRequest = new PayPalCheckoutSDK.orders.OrdersCaptureRequest(
@@ -167,22 +149,27 @@ exports.main = async (req, res) => {
   );
 
   try {
-    // await payPalClient.execute(captureOrderRequest); TODO
+    await payPalClient.execute(captureOrderRequest);
   } catch (e) {
-    console.log("Error. Failed to capture the payment.");
     console.error(e);
-    res
-      .status(500)
-      .send(
-        getUserFriendlyErrorMessage("Failed to accept (capture) your payment.")
-      );
-    throw e;
+    throw new ErrorWithStatus("Failed to accept (capture) your payment.", 500);
   }
+};
 
+const errorHandler = (func) => async (req, res) => {
+  try {
+    return func(req, res);
+  } catch (e) {
+    console.error(e);
+    res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
+  }
+};
+
+const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const creationTime = moment();
-  const expiry = moment(creationTime).add(membershipType.months, "months");
+  const expiry = moment(creationTime).add(membershipInfo.months, "months");
   const data = {
-    ...req.body,
+    ...requestBody,
     creationTime: convertToGoogleSheetsTimeStamp(creationTime),
     inGoogleGroup: false,
     expiry: convertToGoogleSheetsTimeStamp(expiry),
@@ -190,21 +177,30 @@ exports.main = async (req, res) => {
 
   const row = await sheet.addRow(data);
 
-  for (let key in req.body) {
-    if (req.body.hasOwnProperty(key) && !row.hasOwnProperty(key)) {
-      console.log(
-        `Missing parameter '${key}' in Google Sheet database header.`
+  for (let key in requestBody) {
+    if (requestBody.hasOwnProperty(key) && !row.hasOwnProperty(key))
+      throw new ErrorWithStatus(
+        `Missing parameter '${key}' in Google Sheet database header.`,
+        500
       );
-      res
-        .status(500)
-        .send(
-          getUserFriendlyErrorMessage(
-            `Missing parameter '${key}' in Google Sheet database header.`
-          )
-        );
-      return;
-    }
   }
+};
+
+const mainContent = async (req, res) => {
+  console.log("Received request!");
+
+  const externalDependencies = {
+    payPalClient: getPayPalClient(),
+    sheet: await getGoogleSheet(),
+  };
+
+  const { membershipInfo } = validateRequest(req);
+
+  await capturePayment(req.body.orderID, membershipInfo, externalDependencies.payPalClient);
+
+  await writeAccountToDatabase(req.body, membershipInfo, externalDependencies.sheet);
 
   res.redirect("https://utoc.ca/membership-success");
 };
+
+module.exports = errorHandler(mainContent);
