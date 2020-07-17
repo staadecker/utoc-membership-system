@@ -32,6 +32,8 @@ The cloud function will:
 
 2. In this directory, run `npm install` in terminal.
 
+3. Run `npm run auth` to login and verify that you have access to the staging environment.
+
 #### Run
 
 In this directory, run `npm start`.

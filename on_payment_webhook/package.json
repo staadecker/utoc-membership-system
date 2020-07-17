@@ -6,7 +6,8 @@
   "scripts": {
     "start": "functions-framework --target=main",
     "prettier": "prettier --write .",
-    "test": "jest"
+    "test": "jest",
+    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-payment"
   },
   "author": "Martin Staadecker",
   "license": "MIT",
@@ -21,6 +22,7 @@
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.2",
     "google-spreadsheet": "^3.0.11",
+    "googleapis": "^54.1.0",
     "moment": "^2.27.0"
   },
   "jest": {

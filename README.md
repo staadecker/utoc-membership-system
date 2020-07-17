@@ -28,3 +28,6 @@ The payment buttons will trigger `on_payment_complete.py` which will:
 ### Libraries used
 
 - https://www.npmjs.com/package/google-spreadsheet
+
+
+https://cloud.google.com/functions/docs/securing/function-identity#fetching_identity_and_access_tokens
