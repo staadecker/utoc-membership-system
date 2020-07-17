@@ -75,7 +75,7 @@ const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(process.env.DB_SPREADSHEET_ID);
 
   if (process.env.ENVIRONMENT === "development") {
-    await doc.useServiceAccountAuth(require("./creds.json"));
+    await doc.useServiceAccountAuth(require("../creds.json"));
   } else {
     throw Error("Unimplemented");
   }
@@ -158,7 +158,7 @@ const capturePayment = async (orderID, membershipInfo, payPalClient) => {
 
 const errorHandler = (func) => async (req, res) => {
   try {
-    return func(req, res);
+    return await func(req, res);
   } catch (e) {
     console.error(e);
     res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
@@ -188,6 +188,7 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
 
 const mainContent = async (req, res) => {
   console.log("Received request!");
+  console.log(req.body);
 
   const externalDependencies = {
     payPalClient: getPayPalClient(),
@@ -196,11 +197,19 @@ const mainContent = async (req, res) => {
 
   const { membershipInfo } = validateRequest(req);
 
-  await capturePayment(req.body.orderID, membershipInfo, externalDependencies.payPalClient);
+  await capturePayment(
+    req.body.orderID,
+    membershipInfo,
+    externalDependencies.payPalClient
+  );
 
-  await writeAccountToDatabase(req.body, membershipInfo, externalDependencies.sheet);
+  await writeAccountToDatabase(
+    req.body,
+    membershipInfo,
+    externalDependencies.sheet
+  );
 
   res.redirect("https://utoc.ca/membership-success");
 };
 
-module.exports = errorHandler(mainContent);
+module.exports.main = errorHandler(mainContent);
