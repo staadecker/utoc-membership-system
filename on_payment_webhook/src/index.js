@@ -66,6 +66,7 @@ const getPayPalClient = () => {
 
 const convertToGoogleSheetsTimeStamp = (moment) =>
   (moment.unix() + 2209161600) / 86400;
+module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp;
 
 /**
  * Returns the google sheet with the ID specified in the environment variable.
@@ -188,14 +189,13 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
 
 const mainContent = async (req, res) => {
   console.log("Received request!");
-  console.log(req.body);
+
+  const { membershipInfo } = validateRequest(req);
 
   const externalDependencies = {
     payPalClient: getPayPalClient(),
     sheet: await getGoogleSheet(),
   };
-
-  const { membershipInfo } = validateRequest(req);
 
   await capturePayment(
     req.body.orderID,
