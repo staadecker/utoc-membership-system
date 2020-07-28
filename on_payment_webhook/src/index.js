@@ -18,6 +18,7 @@ const moment = require("moment");
 const { google } = require("googleapis");
 
 const ADMIN_EMAIL = "admin@utoc.ca";
+const MEMBER_GROUP_EMAIL = "test-membership@utoc.ca";
 const MEMBERSHIP_INFO = {
   "student-20$": {
     amount: 20,
@@ -90,19 +91,18 @@ const getGoogleSheet = async () => {
 
 // Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
 const getGoogleGroupClient = async () => {
-  const auth = new google.auth.GoogleAuth({
+  const auth = await new google.auth.GoogleAuth({
     // Scopes can be specified either as an array or as a single, space-delimited string.
     projectId: "utoc-payment",
-    scopes: [
-      // "https://www.googleapis.com/auth/admin.directory.group",
-      "https://www.googleapis.com/auth/admin.directory.user",
-    ],
-  });
+    scopes: ["https://www.googleapis.com/auth/admin.directory.group"],
+  }).getClient();
 
-  const authClient = await auth.getClient();
-  authClient.subject = ADMIN_EMAIL; // https://github.com/googleapis/google-api-nodejs-client/issues/1699
+  // The following line is required since the Google Admin API needs to impersonate a real account
+  // https://github.com/googleapis/google-api-nodejs-client/issues/1699
+  // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
+  auth.subject = ADMIN_EMAIL;
 
-  return google.admin({ version: "directory_v1", auth: authClient });
+  return google.admin({ version: "directory_v1", auth });
 };
 
 /**
@@ -206,26 +206,18 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   }
 };
 
-async function addToGoogleGroups(googleGroupClient) {
-  let response;
-
+async function addUserToGoogleGroup(googleGroupClient, email) {
   try {
-    response = await googleGroupClient.users.list({
-      domain: "utoc.ca",
+    await googleGroupClient.members.insert({
+      groupKey: MEMBER_GROUP_EMAIL,
+      requestBody: { email },
     });
   } catch (e) {
-    console.error(e);
-    throw new ErrorWithStatus(`Don't have access to Google Groups API.`, 500);
-  }
-
-  const users = response.data.users;
-  if (users.length) {
-    console.log("Users:");
-    users.forEach((user) => {
-      console.log(`${user.primaryEmail} (${user.name.fullName})`);
-    });
-  } else {
-    console.log("No users found.");
+    if (e.code === 409) return; // 409 is conflicting entry which means the user already exists in the database
+    throw new ErrorWithStatus(
+      "Could not add the user to the Google Groups mailing list.",
+      500
+    );
   }
 }
 
@@ -240,8 +232,6 @@ const mainContent = async (req, res) => {
     googleGroupClient: await getGoogleGroupClient(),
   };
 
-  await addToGoogleGroups(externalDependencies.googleGroupClient);
-
   await capturePayment(
     req.body.orderID,
     membershipInfo,
@@ -252,6 +242,11 @@ const mainContent = async (req, res) => {
     req.body,
     membershipInfo,
     externalDependencies.sheet
+  );
+
+  await addUserToGoogleGroup(
+    externalDependencies.googleGroupClient,
+    req.body.email
   );
 
   res.redirect("https://utoc.ca/membership-success");

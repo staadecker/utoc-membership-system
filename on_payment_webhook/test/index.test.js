@@ -74,7 +74,7 @@ const validBody = {
   lastName: "Last",
   school: "U of T",
   programAndCollege: "EngSci :)",
-  email: "s@gmail.com",
+  email: "somerandom-email-jljdsf@mail.utoronto.ca",
   foundUtoc: '"you talked" to me',
   interestedInFamilyEvent: "no",
   membership_type: "student-20$",
