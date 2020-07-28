@@ -2,14 +2,14 @@ const request = require("supertest");
 const { main, convertToGoogleSheetsTimeStamp } = require("../src");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: paypalMocks } = require("@paypal/checkout-server-sdk");
-const moment = require("moment")
+const moment = require("moment");
 // This is not ideal however it allows us to get the express app to run tests.
 // Essentially we are getting the same express app as what is run on Google's servers,
 // See the source code https://github.com/GoogleCloudPlatform/functions-framework-nodejs/blob/master/src/invoker.ts for where I found the two functions.
 const {
   SignatureType,
   getServer,
-} = require("../node_modules/@google-cloud/functions-framework/build/src/invoker");
+} = require("@google-cloud/functions-framework/build/src/invoker");
 
 const app = getServer(main, SignatureType.HTTP);
 
@@ -115,7 +115,7 @@ describe("all tests", () => {
 
     sheetsMocks.addRow.mockReturnValueOnce(validBody);
 
-    await request(app).post("/").send(validBody).expect(400)
+    await request(app).post("/").send(validBody).expect(400);
 
     expect(paypalMocks.getOrderRequest).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureOrder).not.toHaveBeenCalled();
@@ -129,14 +129,23 @@ describe("all tests", () => {
 
     sheetsMocks.addRow.mockReturnValueOnce(validBody);
 
-    await request(app).post("/").send(validBody).expect(302).expect("Location", "https://utoc.ca/membership-success");
+    await request(app)
+      .post("/")
+      .send(validBody)
+      .expect(302)
+      .expect("Location", "https://utoc.ca/membership-success");
 
-    expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1)
-    expect(paypalMocks.captureOrder).toHaveBeenCalledTimes(1)
+    expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureOrder).toHaveBeenCalledTimes(1);
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
     expect(dataAdded).toMatchObject(validBody);
-    expect(dataAdded.creationTime).toBeCloseTo(convertToGoogleSheetsTimeStamp(moment()), 2)
-    expect(dataAdded.expiry).toBeGreaterThan(convertToGoogleSheetsTimeStamp(moment()));
+    expect(dataAdded.creationTime).toBeCloseTo(
+      convertToGoogleSheetsTimeStamp(moment()),
+      2
+    );
+    expect(dataAdded.expiry).toBeGreaterThan(
+      convertToGoogleSheetsTimeStamp(moment())
+    );
     //expect(dataAdded.inGoogleGroup).toBe(true); // TODO enable test
   });
 });

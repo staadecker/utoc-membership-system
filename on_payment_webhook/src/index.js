@@ -15,7 +15,7 @@ require("dotenv").config(); // Used during testing to load environment variables
 const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
-const {google} = require('googleapis');
+const { google } = require("googleapis");
 
 const MEMBERSHIP_INFO = {
   "student-20$": {
@@ -90,12 +90,12 @@ const getGoogleSheet = async () => {
 const getGoogleGroupClient = async () => {
   const auth = new google.auth.GoogleAuth({
     // Scopes can be specified either as an array or as a single, space-delimited string.
-    scopes: ['https://www.googleapis.com/auth/compute']
+    scopes: ["https://www.googleapis.com/auth/compute"],
   });
   const authClient = await auth.getClient();
 
-  return google.admin({version:"directory_v1",auth: authClient});
-}
+  return google.admin({ version: "directory_v1", auth: authClient });
+};
 
 /**
  * Returns a user friendly error message that is displayed if the function returns an error code.
@@ -206,28 +206,28 @@ const mainContent = async (req, res) => {
   const externalDependencies = {
     payPalClient: getPayPalClient(),
     sheet: await getGoogleSheet(),
-    googleAuthClient: await getGoogleGroupClient()
+    googleAuthClient: await getGoogleGroupClient(),
   };
 
-  const response = await externalDependencies.googleAuthClient.users.list({
-    customer: 'my_customer',
-    maxResults: 10,
-    orderBy: 'email',
-  }).catch((err) => {
-    return console.error('The API returned an error:', err.message);
-  })
+  const response = await externalDependencies.googleAuthClient.users
+    .list({
+      customer: "my_customer",
+      maxResults: 10,
+      orderBy: "email",
+    })
+    .catch((err) => {
+      return console.error("The API returned an error:", err.message);
+    });
 
-
-    const users = response.data.users;
-    if (users.length) {
-      console.log('Users:');
-      users.forEach((user) => {
-        console.log(`${user.primaryEmail} (${user.name.fullName})`);
-      });
-    } else {
-      console.log('No users found.');
-    }
-
+  const users = response.data.users;
+  if (users.length) {
+    console.log("Users:");
+    users.forEach((user) => {
+      console.log(`${user.primaryEmail} (${user.name.fullName})`);
+    });
+  } else {
+    console.log("No users found.");
+  }
 
   await capturePayment(
     req.body.orderID,
