@@ -69,6 +69,26 @@ jest.mock("google-spreadsheet", () => {
   };
 });
 
+jest.mock("googleapis", () => {
+  const mocks = {
+    addUserToGroup: jest.fn(),
+  };
+
+  return {
+    mocks,
+    google: {
+      auth: {
+        GoogleAuth: class GoogleAuth {
+          getClient() {
+            return {};
+          }
+        },
+      },
+      admin: () => ({ members: { insert: mocks.addUserToGroup } }),
+    },
+  };
+});
+
 const validBody = {
   firstName: "Martin",
   lastName: "Last",
