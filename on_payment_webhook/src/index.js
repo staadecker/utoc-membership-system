@@ -17,6 +17,7 @@ const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
 const { google } = require("googleapis");
 
+const ADMIN_EMAIL = "admin@utoc.ca";
 const MEMBERSHIP_INFO = {
   "student-20$": {
     amount: 20,
@@ -87,12 +88,19 @@ const getGoogleSheet = async () => {
   return doc.sheetsByIndex[1];
 };
 
+// Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
 const getGoogleGroupClient = async () => {
   const auth = new google.auth.GoogleAuth({
     // Scopes can be specified either as an array or as a single, space-delimited string.
-    scopes: ["https://www.googleapis.com/auth/compute"],
+    projectId: "utoc-payment",
+    scopes: [
+      // "https://www.googleapis.com/auth/admin.directory.group",
+      "https://www.googleapis.com/auth/admin.directory.user",
+    ],
   });
+
   const authClient = await auth.getClient();
+  authClient.subject = ADMIN_EMAIL; // https://github.com/googleapis/google-api-nodejs-client/issues/1699
 
   return google.admin({ version: "directory_v1", auth: authClient });
 };
@@ -198,26 +206,17 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   }
 };
 
-const mainContent = async (req, res) => {
-  console.log("Received request!");
+async function addToGoogleGroups(googleGroupClient) {
+  let response;
 
-  const { membershipInfo } = validateRequest(req);
-
-  const externalDependencies = {
-    payPalClient: getPayPalClient(),
-    sheet: await getGoogleSheet(),
-    googleAuthClient: await getGoogleGroupClient(),
-  };
-
-  const response = await externalDependencies.googleAuthClient.users
-    .list({
-      customer: "my_customer",
-      maxResults: 10,
-      orderBy: "email",
-    })
-    .catch((err) => {
-      return console.error("The API returned an error:", err.message);
+  try {
+    response = await googleGroupClient.users.list({
+      domain: "utoc.ca",
     });
+  } catch (e) {
+    console.error(e);
+    throw new ErrorWithStatus(`Don't have access to Google Groups API.`, 500);
+  }
 
   const users = response.data.users;
   if (users.length) {
@@ -228,6 +227,20 @@ const mainContent = async (req, res) => {
   } else {
     console.log("No users found.");
   }
+}
+
+const mainContent = async (req, res) => {
+  console.log("Received request!");
+
+  const { membershipInfo } = validateRequest(req);
+
+  const externalDependencies = {
+    payPalClient: getPayPalClient(),
+    sheet: await getGoogleSheet(),
+    googleGroupClient: await getGoogleGroupClient(),
+  };
+
+  await addToGoogleGroups(externalDependencies.googleGroupClient);
 
   await capturePayment(
     req.body.orderID,
