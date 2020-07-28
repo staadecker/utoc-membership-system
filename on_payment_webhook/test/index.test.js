@@ -2,6 +2,7 @@ const request = require("supertest");
 const { main, convertToGoogleSheetsTimeStamp } = require("../src");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: paypalMocks } = require("@paypal/checkout-server-sdk");
+const { mocks: googleMocks } = require("googleapis");
 const moment = require("moment");
 // This is not ideal however it allows us to get the express app to run tests.
 // Essentially we are getting the same express app as what is run on Google's servers,
@@ -157,6 +158,8 @@ describe("all tests", () => {
 
     expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureOrder).toHaveBeenCalledTimes(1);
+    expect(googleMocks.addUserToGroup).toHaveBeenCalledTimes(1);
+
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
     expect(dataAdded).toMatchObject(validBody);
     expect(dataAdded.creationTime).toBeCloseTo(
@@ -166,6 +169,9 @@ describe("all tests", () => {
     expect(dataAdded.expiry).toBeGreaterThan(
       convertToGoogleSheetsTimeStamp(moment())
     );
-    //expect(dataAdded.inGoogleGroup).toBe(true); // TODO enable test
+
+    expect(
+      googleMocks.addUserToGroup.mock.calls[0][0].requestBody.email
+    ).toStrictEqual(validBody.email);
   });
 });
