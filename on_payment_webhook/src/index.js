@@ -16,6 +16,7 @@ const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
 
+// region Constants
 const MEMBERSHIP_INFO = {
   "student-20$": {
     amount: 20,
@@ -35,6 +36,12 @@ const MEMBERSHIP_INFO = {
   },
 };
 
+const SUCCESS_URL = "https://utoc.ca/membership-success";
+
+// endregion
+
+// region Helpers
+
 /**
  * A custom error type that supports a status code
  */
@@ -45,6 +52,28 @@ class ErrorWithStatus extends Error {
   }
 }
 
+const convertToGoogleSheetsTimeStamp = (moment) =>
+  (moment.unix() + 2209161600) / 86400;
+module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp;
+
+/**
+ * Returns a user friendly error message that is displayed if the function returns an error code.
+ */
+const getUserFriendlyErrorMessage = (details) =>
+  `Oops! Something went wrong. Please contact UTOC.\n Details: ${details}`;
+
+const errorHandler = (func) => async (req, res) => {
+  try {
+    return await func(req, res);
+  } catch (e) {
+    console.error(e);
+    res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
+  }
+};
+
+// endregion
+
+// region Setup
 /**
  *
  * Returns PayPal HTTP client instance with environment that has access
@@ -64,10 +93,6 @@ const getPayPalClient = () => {
   return new PayPalCheckoutSDK.core.PayPalHttpClient(environment);
 };
 
-const convertToGoogleSheetsTimeStamp = (moment) =>
-  (moment.unix() + 2209161600) / 86400;
-module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp;
-
 /**
  * Returns the google sheet with the ID specified in the environment variable.
  * Authentication is performed through a service account key file for development ("creds.json")
@@ -85,13 +110,9 @@ const getGoogleSheet = async () => {
 
   return doc.sheetsByIndex[1];
 };
+// endregion
 
-/**
- * Returns a user friendly error message that is displayed if the function returns an error code.
- */
-const getUserFriendlyErrorMessage = (details) =>
-  `Oops! Something went wrong. Please contact UTOC.\n Details: ${details}`;
-
+// region Operations
 /**
  * This function verifies that the request has the right format. If not, it throws.
  */
@@ -157,14 +178,7 @@ const capturePayment = async (orderID, membershipInfo, payPalClient) => {
   }
 };
 
-const errorHandler = (func) => async (req, res) => {
-  try {
-    return await func(req, res);
-  } catch (e) {
-    console.error(e);
-    res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
-  }
-};
+
 
 const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const creationTime = moment();
@@ -186,6 +200,8 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
       );
   }
 };
+
+// endregion
 
 const mainContent = async (req, res) => {
   console.log("Received request!");
@@ -209,7 +225,7 @@ const mainContent = async (req, res) => {
     externalDependencies.sheet
   );
 
-  res.redirect("https://utoc.ca/membership-success");
+  res.redirect(SUCCESS_URL);
 };
 
 module.exports.main = errorHandler(mainContent);
