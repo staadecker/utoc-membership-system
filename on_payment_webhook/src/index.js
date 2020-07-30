@@ -15,10 +15,7 @@ require("dotenv").config(); // Used during testing to load environment variables
 const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
-const { google } = require("googleapis");
 
-const ADMIN_EMAIL = "admin@utoc.ca";
-const MEMBER_GROUP_EMAIL = "test-membership@utoc.ca";
 const MEMBERSHIP_INFO = {
   "student-20$": {
     amount: 20,
@@ -87,22 +84,6 @@ const getGoogleSheet = async () => {
   await doc.loadInfo();
 
   return doc.sheetsByIndex[1];
-};
-
-// Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
-const getGoogleGroupClient = async () => {
-  const auth = await new google.auth.GoogleAuth({
-    // Scopes can be specified either as an array or as a single, space-delimited string.
-    projectId: "utoc-payment",
-    scopes: ["https://www.googleapis.com/auth/admin.directory.group"],
-  }).getClient();
-
-  // The following line is required since the Google Admin API needs to impersonate a real account
-  // https://github.com/googleapis/google-api-nodejs-client/issues/1699
-  // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
-  auth.subject = ADMIN_EMAIL;
-
-  return google.admin({ version: "directory_v1", auth });
 };
 
 /**
@@ -206,21 +187,6 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   }
 };
 
-async function addUserToGoogleGroup(googleGroupClient, email) {
-  try {
-    await googleGroupClient.members.insert({
-      groupKey: MEMBER_GROUP_EMAIL,
-      requestBody: { email },
-    });
-  } catch (e) {
-    if (e.code === 409) return; // 409 is conflicting entry which means the user already exists in the database
-    throw new ErrorWithStatus(
-      "Could not add the user to the Google Groups mailing list.",
-      500
-    );
-  }
-}
-
 const mainContent = async (req, res) => {
   console.log("Received request!");
 
@@ -229,7 +195,6 @@ const mainContent = async (req, res) => {
   const externalDependencies = {
     payPalClient: getPayPalClient(),
     sheet: await getGoogleSheet(),
-    googleGroupClient: await getGoogleGroupClient(),
   };
 
   await capturePayment(
@@ -242,11 +207,6 @@ const mainContent = async (req, res) => {
     req.body,
     membershipInfo,
     externalDependencies.sheet
-  );
-
-  await addUserToGoogleGroup(
-    externalDependencies.googleGroupClient,
-    req.body.email
   );
 
   res.redirect("https://utoc.ca/membership-success");
