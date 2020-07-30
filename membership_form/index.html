@@ -7,7 +7,7 @@
   <body>
     <!--  COPY THE CODE FROM HERE INTO SQUARESPACE-->
     <div class="form-wrapper">
-      <form id="membership_form" action="http://localhost:8080" method="post">
+      <form id="membership_form" method="post">
         <div id="infoTab" class="field-list">
           <div class="field">
             <label for="firstName">First Name *</label>
@@ -145,6 +145,8 @@
     ></script>
 
     <script>
+      const isDevelopment = true;
+
       const PRICING = {
         "student-20$": 20,
         "regular-30$": 30,
@@ -153,6 +155,11 @@
       };
 
       const membershipForm = document.getElementById("membership_form");
+
+      if (isDevelopment) membershipForm.action = "http://localhost:8080";
+      else
+        membershipForm.action =
+          "https://northamerica-northeast1-utoc-payment.cloudfunctions.net/on-membership-payment";
 
       function toPayment() {
         if (!membershipForm.checkValidity()) return;

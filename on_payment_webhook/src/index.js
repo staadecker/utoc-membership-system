@@ -10,11 +10,14 @@
  * - Add the user to the Google Groups List.
  */
 
-require("dotenv").config(); // Used during testing to load environment variables. See https://www.npmjs.com/package/dotenv.
+const isDevelopment = process.env.ENVIRONMENT === "development";
+
+if (isDevelopment) require("dotenv").config(); // Used during testing to load environment variables. See https://www.npmjs.com/package/dotenv.
 
 const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
+const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 // region Constants
 const MEMBERSHIP_INFO = {
@@ -71,6 +74,13 @@ const errorHandler = (func) => async (req, res) => {
   }
 };
 
+const fetchGoogleSecret = async (secretId) => {
+  const client = new SecretManagerServiceClient();
+  const [version] = await client.accessSecretVersion({ name: secretId });
+
+  return version.payload.data.toString();
+};
+
 // endregion
 
 // region Setup
@@ -100,11 +110,12 @@ const getPayPalClient = () => {
 const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(process.env.DB_SPREADSHEET_ID);
 
-  if (process.env.ENVIRONMENT === "development") {
-    await doc.useServiceAccountAuth(require("../creds.json"));
-  } else {
-    throw Error("Unimplemented");
-  }
+  await doc.useServiceAccountAuth({
+    client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    private_key: await fetchGoogleSecret(
+      process.env.GOOGLE_PRIVATE_KEY_SECRET_ID
+    ),
+  });
 
   await doc.loadInfo();
 
@@ -177,8 +188,6 @@ const capturePayment = async (orderID, membershipInfo, payPalClient) => {
     throw new ErrorWithStatus("Failed to accept (capture) your payment.", 500);
   }
 };
-
-
 
 const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const creationTime = moment();
