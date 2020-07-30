@@ -4,7 +4,7 @@
   "main": "local_test_server.js",
   "private": true,
   "scripts": {
-    "start": "functions-framework --target=main",
+    "start": "functions-framework --target=main --source=src",
     "prettier": "prettier --write .",
     "test": "jest",
     "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-payment"
