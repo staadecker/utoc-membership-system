@@ -6,90 +6,138 @@
   </head>
   <body>
     <!--  COPY THE CODE FROM HERE INTO SQUARESPACE-->
-    <form id="membership_form" action="http://localhost:8080" method="post">
-      <div id="infoTab">
-        <h2>Info</h2>
-        <p><label for="firstName">First Name *</label></p>
-        <p>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            required
-          />
-        </p>
-        <p><label for="lastName">Last Name *</label></p>
-        <p>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            required
-          />
-        </p>
-        <p><label for="school">School</label></p>
-        <p>
-          <input
-            id="school"
-            name="school"
-            type="text"
-          />
-        </p>
-        <p>
-          <label for="program"
-            >Program & College (if you are a UofT student)</label
+    <div class="form-wrapper">
+      <form id="membership_form" action="http://localhost:8080" method="post">
+        <div id="infoTab" class="field-list">
+          <div class="field">
+            <label for="firstName">First Name *</label>
+            <label class="caption">
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                class="field-element"
+                required
+            /></label>
+          </div>
+          <div class="field">
+            <label for="lastName">Last Name *</label>
+            <label class="caption">
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                class="field-element"
+                required
+            /></label>
+          </div>
+          <div class="field">
+            <label for="school">School</label>
+            <label class="caption">
+              <input
+                id="school"
+                name="school"
+                class="field-element"
+                type="text"
+            /></label>
+          </div>
+          <div class="field">
+            <label for="program"
+              >Program & College (if you are a UofT student)</label
+            >
+            <label class="caption">
+              <input
+                id="program"
+                type="text"
+                class="field-element"
+                name="programAndCollege"
+            /></label>
+          </div>
+          <div class="field">
+            <label for="email"
+              >Email * (we will notify you of events and trips using this
+              email)</label
+            >
+            <label class="caption">
+              <input
+                id="email"
+                type="email"
+                class="field-element"
+                name="email"
+                required
+            /></label>
+          </div>
+          <div class="field">
+            <label for="foundUtoc">How did you find UTOC? </label>
+            <label class="caption">
+              <input
+                id="foundUtoc"
+                name="foundUtoc"
+                class="field-element"
+                type="text"
+            /></label>
+          </div>
+          <fieldset class="field radio">
+            <label>Are you interested in family style events? *</label>
+
+            <div class="option">
+              <label for="yes">
+                <input
+                  type="radio"
+                  id="yes"
+                  value="yes"
+                  name="interestedInFamilyEvent"
+                  required
+                />
+                Yes
+              </label>
+            </div>
+            <div class="option">
+              <input
+                type="radio"
+                id="no"
+                value="no"
+                name="interestedInFamilyEvent"
+                required
+              />
+
+              <label for="no">No</label><br />
+            </div>
+          </fieldset>
+
+          <div class="field select">
+            <label for="membership_type" class="title"
+              >Choose your membership type:</label
+            >
+
+            <select name="membership_type" id="membership_type">
+              <option value="student-20$">Student Membership $20.00 CAD</option>
+              <option value="regular-30$">Regular Membership $30.00 CAD</option>
+              <option value="family-40$">Family Membership $40.00 CAD</option>
+              <option value="summer-10$">Summer Membership $10.00 CAD</option>
+            </select>
+          </div>
+
+          <br />
+
+          <button
+            type="button"
+            class="sqs-editable-button"
+            onclick="toPayment()"
           >
-        </p>
-        <p><input id="program" type="text" name="programAndCollege" /></p>
-        <p>
-          <label for="email"
-            >Email * (we will notify you of events and trips using this
-            email)</label
-          >
-        </p>
-        <p><input id="email" type="email" name="email" required /></p>
-        <p><label for="foundUtoc">How did you find UTOC? </label></p>
-        <p><input id="foundUtoc" name="foundUtoc" type="text" /></p>
-        <p>Are you interested in family style events? *</p>
-        <input
-          type="radio"
-          id="yes"
-          value="yes"
-          name="interestedInFamilyEvent"
-          required
-        />
-        <label for="yes">Yes</label><br />
-        <input
-          type="radio"
-          id="no"
-          value="no"
-          name="interestedInFamilyEvent"
-          required
-        />
-        <label for="no">No</label><br />
-        <p><label for="membership_type">Choose your membership type:</label></p>
-        <p>
-          <select name="membership_type" id="membership_type">
-            <option value="student-20$">Student Membership $20.00 CAD</option>
-            <option value="regular-30$">Regular Membership $30.00 CAD</option>
-            <option value="family-40$">Family Membership $40.00 CAD</option>
-            <option value="summer-10$">Summer Membership $10.00 CAD</option>
-          </select>
-        </p>
+            Next
+          </button>
+        </div>
 
-        <br />
+        <div id="paymentTab" style="display: none;">
+          <h2>Payment</h2>
 
-        <button type="button" class="sqs-editable-button" onclick="toPayment()">Next</button>
-      </div>
+          <input type="hidden" id="orderID" name="orderID" />
 
-      <div id="paymentTab" style="display: none;">
-        <h2>Payment</h2>
-
-        <input type="hidden" id="orderID" name="orderID" />
-
-        <div id="paypal-button-container"></div>
-      </div>
-    </form>
+          <div id="paypal-button-container"></div>
+        </div>
+      </form>
+    </div>
 
     <script
       src="https://www.paypal.com/sdk/js?client-id=AVhTs5Ui8fjSnR5-CH-IZ2_NQvgyFYZHUEW-tYaBZKQS61gnrpc9rjc_4bVldcQklV1WPtswTRG_B-Hc&currency=CAD"
