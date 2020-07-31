@@ -7,7 +7,6 @@
  * - Verify that the amount payed matches the membership type
  * - Accept ("capture") the payment
  * - Add the user to the Google Sheets database
- * - Add the user to the Google Groups List.
  */
 
 const isDevelopment = process.env.ENVIRONMENT === "development";
