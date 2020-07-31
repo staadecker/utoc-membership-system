@@ -2,7 +2,12 @@
 
 This repository contains the different components used in the University of Toronto Outing Club's (UTOC's) membership system.
 
-## Components
+## Business Context
+
+UTOC needs a way to track members, have an up-to-date member mailing list and accept membership payments online.
+This system aims to meet those needs.
+
+## System Components
 
 This section presents the 3 different components of the system. Visit each component's README for component-specific details.
 
@@ -24,7 +29,7 @@ This function syncs a Google Group (which we use as a mailing list) with the Goo
 Expired memberships are removed from the Google Group while new memberships are added.
 An email notification is sent to members whenever there's a change.
 
-# Next steps
+## Next steps
 
 If you want to learn more about the system, how it works, how to run it locally, and how to test it, then read the following docs.
 
