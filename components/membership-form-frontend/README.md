@@ -44,4 +44,4 @@ In this section, I discuss the different steps involved in contributing to the f
 
 2. Copy paste the content of `index.html` into the Squarespace code block. Only copy the code within the `<body>` tag (not including the tag itself).
 
-3. Test it! (see [the testing docs](docs/Testing.md))
+3. Test it! (see [the testing docs](/docs/Testing.md))

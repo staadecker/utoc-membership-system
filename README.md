@@ -28,7 +28,7 @@ An email notification is sent to members whenever there's a change.
 
 If you want to learn more about the system, how it works, how to run it locally, and how to test it, then read the following docs.PayPal
 
-- [System Architecture](./docs/System%20Architecture.md)
+- [System Architecture](./docs/System%20architecture.md)
 
 - [Developer Setup](./docs/Developer%20Setup.md)
 
