@@ -39,7 +39,7 @@ If you want to learn more about the system, how it works, how to run it locally,
 
 - [Testing the system](./docs/Testing.md)
 
-- README's for each components (links in headers above)
+- README's for each component (links in headers above)
 
 ## Contact Info
 
