@@ -24,6 +24,18 @@ This function syncs a Google Group (which we use as a mailing list) with the Goo
 Expired memberships are removed from the Google Group while new memberships are added.
 An email notification is sent to members whenever there's a change.
 
+# Next steps
+
+If you want to learn more about the system, how it works, how to run it locally, and how to test it, then read the following docs.PayPal
+
+- [System Architecture](./docs/System%20Architecture.md)
+
+- [Developer Setup](./docs/Developer%20Setup.md)
+
+- [Testing the system](./docs/Testing.md)
+
+- README's for each components (links in headers above)
+
 ## Contact Info
 
 The code was developed by Martin Staadecker, webmaster for UTOC in 2020-21.
