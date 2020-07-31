@@ -26,7 +26,7 @@ An email notification is sent to members whenever there's a change.
 
 # Next steps
 
-If you want to learn more about the system, how it works, how to run it locally, and how to test it, then read the following docs.PayPal
+If you want to learn more about the system, how it works, how to run it locally, and how to test it, then read the following docs.
 
 - [System Architecture](./docs/System%20architecture.md)
 
