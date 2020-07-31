@@ -1,33 +1,30 @@
-# UTOC Payment and membership system
+# UTOC Membership System
 
-All the code for the University of Toronto Outing Club payment and membership system. 
+This repository contains the different components used in the University of Toronto Outing Club's (UTOC's) membership system.
 
-## Features
+## Components
 
-### PayPal Payment Buttons
+This section presents the 3 different components of the system. Visit each component's README for component-specific details.
 
-`index.html` contains code that displays PayPal payment buttons. 
-The user selects their membership type and then uses the PayPal payment button to make the payment.
+### `membership-form-frontend`
 
-### On payment operations
+The first component is a membership sign up form.
+This form is embedded on our squarespace website and collects both membership information as well as a payment through PayPal buttons.
 
-The payment buttons will trigger `on_payment_complete.py` which will:
+### `membership-form-backend`
 
-- Capture the PayPal payment
+The second component is a Google Cloud function that receives the frontend form submission.
+The function verifies that the PayPal transaction is valid and adds the member to our Google Sheets database.
+We use Google Sheets to allow non-technical UTOC executives to manually add members if necessary (e.g. member pays in cash).
 
-- Add the new member to the Google Sheets database
+### `mailing-list-synchronizer`
 
-- Add the user to the mailing list
+The third component, is a cloud function that runs daily.
+This function syncs a Google Group (which we use as a mailing list) with the Google Sheets database.
+Expired memberships are removed from the Google Group while new memberships are added.
+An email notification is sent to members whenever there's a change.
 
-- Emails the user confirming they've been added to the mailing list.
+## Contact Info
 
-### Expired memberships
-
-- Notify members whose membership expired
-
-### Libraries used
-
-- https://www.npmjs.com/package/google-spreadsheet
-
-
-https://cloud.google.com/functions/docs/securing/function-identity#fetching_identity_and_access_tokens
+The code was developed by Martin Staadecker, webmaster for UTOC in 2020-21.
+I'm reachable at [machstg@gmail.com](mailto:machstg@gmail.com) and happy to answer any questions.
