@@ -33,13 +33,17 @@ Here are the steps to run the form on your computer.
 
 4. For the form submission to submit properly, you need to also be [running `membership-form-backend` locally](../membership-form-backend/README.md).
 
-### Testing
+### Testing locally
 
-1. Open your browser's developer panel and navigate to the Network tab.membership
+1. Get the backend running as explained in [the README](../membership-form-backend).
 
-2. Complete the form and payment as explained above.
+2. Open `index.html` in your browser.
 
-3. Inspect the request in the network tab to ensure all the data is properly formatted.
+3. Open your browser's developer panel and navigate to the Network tab.
+
+4. Complete the form and payment as explained above.
+
+5. Inspect the request in the network tab to ensure all the data is properly formatted.
 
 ### Deploying the form
 
@@ -48,6 +52,20 @@ Here are the steps to run the form on your computer.
 2. Copy paste the content of `index.html` into the Squarespace code block. Only copy the code within the `<body>` tag (not including the tag itself).
 
 3. Test it! (see [the testing docs](/docs/Testing.md))
+
+### Testing in production
+
+While completing the form on the squarespace website, check the following:
+
+- [ ] Form styling renders and is aesthetically pleasing.
+- [ ] Form will not allow submission without the required fields or with an invalid email.
+- [ ] Spinner displays on submission
+
+Right before paying inspect open the network tab in your browser developer tools.
+Check for the following for the POST request sent when you pay.
+
+- [ ] Request is being sent to correct URL (not localhost)
+- [ ] Request form data contains every field and the data you inputted.
 
 ## Design considerations
 
