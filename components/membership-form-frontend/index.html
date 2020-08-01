@@ -10,22 +10,22 @@
       <form id="membership_form" method="post">
         <div id="infoTab" class="field-list">
           <div class="field">
-            <label for="firstName">First Name *</label>
+            <label for="first_name">First Name *</label>
             <label class="caption">
               <input
-                id="firstName"
-                name="firstName"
+                id="first_name"
+                name="first_name"
                 type="text"
                 class="field-element"
                 required
             /></label>
           </div>
           <div class="field">
-            <label for="lastName">Last Name *</label>
+            <label for="last_name">Last Name *</label>
             <label class="caption">
               <input
-                id="lastName"
-                name="lastName"
+                id="last_name"
+                name="last_name"
                 type="text"
                 class="field-element"
                 required
@@ -42,16 +42,17 @@
             /></label>
           </div>
           <div class="field">
-            <label for="program"
-              >Program & College (if you are a UofT student)</label
-            >
+            <label for="program">
+              Program & College (if you are a UofT student)
+            </label>
             <label class="caption">
               <input
                 id="program"
                 type="text"
                 class="field-element"
-                name="programAndCollege"
-            /></label>
+                name="program_and_college"
+              />
+            </label>
           </div>
           <div class="field">
             <label for="email"
@@ -68,11 +69,11 @@
             /></label>
           </div>
           <div class="field">
-            <label for="foundUtoc">How did you find UTOC? </label>
+            <label for="found_utoc">How did you find UTOC? </label>
             <label class="caption">
               <input
-                id="foundUtoc"
-                name="foundUtoc"
+                id="found_utoc"
+                name="found_utoc"
                 class="field-element"
                 type="text"
             /></label>
@@ -86,7 +87,7 @@
                   type="radio"
                   id="yes"
                   value="yes"
-                  name="interestedInFamilyEvent"
+                  name="interested_in_family_events"
                   required
                 />
                 Yes
@@ -97,7 +98,7 @@
                 type="radio"
                 id="no"
                 value="no"
-                name="interestedInFamilyEvent"
+                name="interested_in_family_events"
                 required
               />
 
@@ -111,10 +112,10 @@
             >
 
             <select name="membership_type" id="membership_type">
-              <option value="student-20$">Student Membership $20.00 CAD</option>
-              <option value="regular-30$">Regular Membership $30.00 CAD</option>
-              <option value="family-40$">Family Membership $40.00 CAD</option>
-              <option value="summer-10$">Summer Membership $10.00 CAD</option>
+              <option value="student">Student Membership $20.00 CAD</option>
+              <option value="regular">Regular Membership $30.00 CAD</option>
+              <option value="family">Family Membership $40.00 CAD</option>
+              <option value="summer">Summer Membership $10.00 CAD</option>
             </select>
           </div>
 
@@ -148,10 +149,10 @@
       const isDevelopment = true;
 
       const PRICING = {
-        "student-20$": 20,
-        "regular-30$": 30,
-        "family-40$": 40,
-        "summer-10$": 10,
+        student: 20,
+        regular: 30,
+        family: 40,
+        summer: 10,
       };
 
       const membershipForm = document.getElementById("membership_form");

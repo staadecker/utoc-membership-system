@@ -1,14 +1,3 @@
-/**
- * WHAT DOES THIS FILE DO?
- * This file is uploaded to Google Cloud Functions (https://cloud.google.com/functions/docs/concepts/overview).
- * Google Cloud Functions will then automatically run main() whenever a request to do so is received.
- * The main() function will receive a form submission from the UTOC membership form.
- * The main function will then
- * - Verify that the amount payed matches the membership type
- * - Accept ("capture") the payment
- * - Add the user to the Google Sheets database
- */
-
 const isDevelopment = process.env.ENVIRONMENT === "development";
 
 if (isDevelopment) require("dotenv").config(); // Used during testing to load environment variables. See https://www.npmjs.com/package/dotenv.
@@ -19,20 +8,20 @@ const moment = require("moment");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 // region Constants
-const MEMBERSHIP_INFO = {
-  "student-20$": {
+const MEMBERSHIP_TYPES = {
+  student: {
     amount: 20,
     months: 12,
   },
-  "regular-30$": {
+  regular: {
     amount: 30,
     months: 12,
   },
-  "family-40$": {
+  family: {
     amount: 40,
     months: 12,
   },
-  "summer-10$": {
+  summer : {
     amount: 10,
     months: 4,
   },
@@ -135,14 +124,14 @@ const validateRequest = (req) => {
 
   if (
     typeof req.body.membership_type !== "string" ||
-    !Object.keys(MEMBERSHIP_INFO).includes(req.body.membership_type)
+    !Object.keys(MEMBERSHIP_TYPES).includes(req.body.membership_type)
   )
     throw new ErrorWithStatus(
       "No valid membership_type contained in request.",
       400
     );
 
-  return { membershipInfo: MEMBERSHIP_INFO[req.body.membership_type] };
+  return { membershipInfo: MEMBERSHIP_TYPES[req.body.membership_type] };
 };
 
 const capturePayment = async (orderID, membershipInfo, payPalClient) => {
@@ -216,6 +205,8 @@ const mainContent = async (req, res) => {
 
   const { membershipInfo } = validateRequest(req);
 
+  console.log("Request is valid.");
+
   const externalDependencies = {
     payPalClient: getPayPalClient(),
     sheet: await getGoogleSheet(),
@@ -227,11 +218,15 @@ const mainContent = async (req, res) => {
     externalDependencies.payPalClient
   );
 
+  console.log("Payment captured");
+
   await writeAccountToDatabase(
     req.body,
     membershipInfo,
     externalDependencies.sheet
   );
+
+  console.log("Account added to database");
 
   res.redirect(SUCCESS_URL);
 };

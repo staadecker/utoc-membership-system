@@ -1,4 +1,11 @@
-# On form submission Google Cloud function
+# membership-form-backend
+
+This component is a Google Cloud Function that receives requests from the membership form frontend.
+
+## Description
+
+This function will receive an HTTP request from the frontend containing both a PayPal OrderID and the member's information.
+The function will verify the PayPal order, accept (capture) it and write the member's data to a Google Spreadsheet.
 
 ## Conceptual Overview
 
