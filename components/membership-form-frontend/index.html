@@ -140,6 +140,26 @@
       </form>
     </div>
 
+    <div class="loader" id="loader"></div>
+
+    <style>
+      /* https://www.w3schools.com/howto/howto_css_loader.asp */
+      .loader {
+        display: none;
+        border: 16px solid #f3f3f3; /* Light grey */
+        border-top: 16px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+
     <script
       src="https://www.paypal.com/sdk/js?client-id=AVhTs5Ui8fjSnR5-CH-IZ2_NQvgyFYZHUEW-tYaBZKQS61gnrpc9rjc_4bVldcQklV1WPtswTRG_B-Hc&currency=CAD"
       data-sdk-integration-source="button-factory"
@@ -156,6 +176,7 @@
       };
 
       const membershipForm = document.getElementById("membership_form");
+      const loader = document.getElementById("loader");
 
       if (isDevelopment) membershipForm.action = "http://localhost:8080";
       else
@@ -188,6 +209,8 @@
             });
           },
           onApprove: function (data) {
+            document.getElementById("paymentTab").style.display = "none";
+            document.getElementById("loader").style.display="block";
             document.getElementById("orderID").value = data.orderID;
             membershipForm.submit();
           },
