@@ -1,240 +1,221 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Title</title>
-  </head>
-  <body>
-    <!--  COPY THE CODE FROM HERE INTO SQUARESPACE-->
-    <script>
-      /* DECLARE CONSTANTS */
-      const isDevelopment = true;
+<script>
+  /* DECLARE CONSTANTS */
+  const isDevelopment = true;
 
-      const clientId = isDevelopment
-        ? "AWFyQG1zwSVne93vPz9Mbguz97bmAAQGhrIOP2KH2wYshfBdDHXnCLBE6k47-msWp8fV7A6f5Js3OiVa"
-        : "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM";
+  const clientId = isDevelopment
+    ? "AWFyQG1zwSVne93vPz9Mbguz97bmAAQGhrIOP2KH2wYshfBdDHXnCLBE6k47-msWp8fV7A6f5Js3OiVa"
+    : "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM";
 
-      const backendEndpoint = isDevelopment
-        ? "http://localhost:8080"
-        : "https://northamerica-northeast1-utoc-payment.cloudfunctions.net/on-membership-payment";
+  const backendEndpoint = isDevelopment
+    ? "http://localhost:8080"
+    : "https://northamerica-northeast1-utoc-payment.cloudfunctions.net/on-membership-payment";
 
-      const PRICING = {
-        student: 20,
-        regular: 30,
-        family: 40,
-        summer: 10,
-      };
-    </script>
+  const PRICING = {
+    student: 20,
+    regular: 30,
+    family: 40,
+    summer: 10,
+  };
+</script>
 
-    <div class="form-wrapper">
-      <form id="membership_form" method="post">
-        <div id="infoTab" class="field-list">
-          <div class="field">
-            <label for="first_name">First Name *</label>
-            <label class="caption">
-              <input
-                id="first_name"
-                name="first_name"
-                type="text"
-                class="field-element"
-                required
-            /></label>
-          </div>
-          <div class="field">
-            <label for="last_name">Last Name *</label>
-            <label class="caption">
-              <input
-                id="last_name"
-                name="last_name"
-                type="text"
-                class="field-element"
-                required
-            /></label>
-          </div>
-          <div class="field">
-            <label for="school">School</label>
-            <label class="caption">
-              <input
-                id="school"
-                name="school"
-                class="field-element"
-                type="text"
-            /></label>
-          </div>
-          <div class="field">
-            <label for="program">
-              Program & College (if you are a UofT student)
-            </label>
-            <label class="caption">
-              <input
-                id="program"
-                type="text"
-                class="field-element"
-                name="program_and_college"
-              />
-            </label>
-          </div>
-          <div class="field">
-            <label for="email"
-              >Email * (we will notify you of events and trips using this
-              email)</label
-            >
-            <label class="caption">
-              <input
-                id="email"
-                type="email"
-                class="field-element"
-                name="email"
-                required
-            /></label>
-          </div>
-          <div class="field">
-            <label for="found_utoc">How did you find UTOC? </label>
-            <label class="caption">
-              <input
-                id="found_utoc"
-                name="found_utoc"
-                class="field-element"
-                type="text"
-            /></label>
-          </div>
-          <fieldset class="field radio">
-            <label>Are you interested in family style events? *</label>
+<div class="form-wrapper">
+  <form id="membership_form" method="post">
+    <div id="infoTab" class="field-list">
+      <div class="field">
+        <label for="first_name">First Name *</label>
+        <label class="caption">
+          <input
+            id="first_name"
+            name="first_name"
+            type="text"
+            class="field-element"
+            required
+        /></label>
+      </div>
+      <div class="field">
+        <label for="last_name">Last Name *</label>
+        <label class="caption">
+          <input
+            id="last_name"
+            name="last_name"
+            type="text"
+            class="field-element"
+            required
+        /></label>
+      </div>
+      <div class="field">
+        <label for="school">School</label>
+        <label class="caption">
+          <input id="school" name="school" class="field-element" type="text"
+        /></label>
+      </div>
+      <div class="field">
+        <label for="program">
+          Program & College (if you are a UofT student)
+        </label>
+        <label class="caption">
+          <input
+            id="program"
+            type="text"
+            class="field-element"
+            name="program_and_college"
+          />
+        </label>
+      </div>
+      <div class="field">
+        <label for="email"
+          >Email * (we will notify you of events and trips using this
+          email)</label
+        >
+        <label class="caption">
+          <input
+            id="email"
+            type="email"
+            class="field-element"
+            name="email"
+            required
+        /></label>
+      </div>
+      <div class="field">
+        <label for="found_utoc">How did you find UTOC? </label>
+        <label class="caption">
+          <input
+            id="found_utoc"
+            name="found_utoc"
+            class="field-element"
+            type="text"
+        /></label>
+      </div>
+      <fieldset class="field radio">
+        <label>Are you interested in family style events? *</label>
 
-            <div class="option">
-              <label for="yes">
-                <input
-                  type="radio"
-                  id="yes"
-                  value="yes"
-                  name="interested_in_family_events"
-                  required
-                />
-                Yes
-              </label>
-            </div>
-            <div class="option">
-              <input
-                type="radio"
-                id="no"
-                value="no"
-                name="interested_in_family_events"
-                required
-              />
-
-              <label for="no">No</label><br />
-            </div>
-          </fieldset>
-
-          <div class="field select">
-            <label for="membership_type" class="title"
-              >Choose your membership type:</label
-            >
-
-            <select name="membership_type" id="membership_type">
-              <option value="student">Student Membership $20.00 CAD</option>
-              <option value="regular">Regular Membership $30.00 CAD</option>
-              <option value="family">Family Membership $40.00 CAD</option>
-              <option value="summer">Summer Membership $10.00 CAD</option>
-            </select>
-          </div>
-
-          <br />
-
-          <button
-            type="button"
-            class="sqs-editable-button"
-            onclick="toPayment()"
-          >
-            Next
-          </button>
+        <div class="option">
+          <label for="yes">
+            <input
+              type="radio"
+              id="yes"
+              value="yes"
+              name="interested_in_family_events"
+              required
+            />
+            Yes
+          </label>
         </div>
+        <div class="option">
+          <input
+            type="radio"
+            id="no"
+            value="no"
+            name="interested_in_family_events"
+            required
+          />
 
-        <div id="paymentTab" style="display: none;">
-          <h2>Payment</h2>
-
-          <input type="hidden" id="orderID" name="orderID" />
-
-          <div id="paypal-button-container"></div>
+          <label for="no">No</label><br />
         </div>
-      </form>
+      </fieldset>
+
+      <div class="field select">
+        <label for="membership_type" class="title"
+          >Choose your membership type:</label
+        >
+
+        <select name="membership_type" id="membership_type">
+          <option value="student">Student Membership $20.00 CAD</option>
+          <option value="regular">Regular Membership $30.00 CAD</option>
+          <option value="family">Family Membership $40.00 CAD</option>
+          <option value="summer">Summer Membership $10.00 CAD</option>
+        </select>
+      </div>
+
+      <br />
+
+      <button type="button" class="sqs-editable-button" onclick="toPayment()">
+        Next
+      </button>
     </div>
 
-    <div id="loader"></div>
+    <div id="paymentTab" style="display: none;">
+      <h2>Payment</h2>
 
-    <style>
-      /* https://www.w3schools.com/howto/howto_css_loader.asp */
-      #loader {
-        display: none;
-        border: 16px solid #f3f3f3; /* Light grey */
-        border-top: 16px solid #3498db; /* Blue */
-        border-radius: 50%;
-        width: 120px;
-        height: 120px;
-        animation: spin 2s linear infinite;
-      }
+      <input type="hidden" id="orderID" name="orderID" />
 
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
+      <div id="paypal-button-container"></div>
+    </div>
+  </form>
+</div>
 
-    <script>
-      /* Import the PayPal SDK */
-      const scriptTag = document.createElement("script");
-      scriptTag.setAttribute(
-        "src",
-        "https://www.paypal.com/sdk/js?currency=CAD&client-id=" + clientId
-      );
-      scriptTag.setAttribute("data-sdk-integration-source", "button-factory");
+<div id="loader"></div>
 
-      document.head.appendChild(scriptTag);
-    </script>
+<style>
+  /* https://www.w3schools.com/howto/howto_css_loader.asp */
+  #loader {
+    display: none;
+    border: 16px solid #f3f3f3; /* Light grey */
+    border-top: 16px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+  }
 
-    <script>
-      /* Define what happens when they press next */
-      function toPayment() {
-        const membershipForm = document.getElementById("membership_form");
-        membershipForm.action = backendEndpoint;
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>
 
-        if (!membershipForm.checkValidity()) return;
-        // Hide the current tab:
-        document.getElementById("infoTab").style.display = "none";
-        // Display the next tab
-        document.getElementById("paymentTab").style.display = "inline";
+<script>
+  /* Import the PayPal SDK */
+  const scriptTag = document.createElement("script");
+  scriptTag.setAttribute(
+    "src",
+    "https://www.paypal.com/sdk/js?currency=CAD&client-id=" + clientId
+  );
+  scriptTag.setAttribute("data-sdk-integration-source", "button-factory");
 
-        paypal
-          .Buttons({
-            style: {
-              shape: "pill",
-              color: "gold",
-              layout: "vertical",
-              label: "pay",
-            },
-            createOrder: function (data, actions) {
-              const typeDropdown = document.getElementById("membership_type");
-              const value = PRICING[
-                typeDropdown.options[typeDropdown.selectedIndex].value
-              ].toString();
-              return actions.order.create({
-                purchase_units: [{ amount: { value } }],
-              });
-            },
-            onApprove: function (data) {
-              document.getElementById("paymentTab").style.display = "none";
-              document.getElementById("loader").style.display = "block";
-              document.getElementById("orderID").value = data.orderID;
-              membershipForm.submit();
-            },
-          })
-          .render("#paypal-button-container");
-      }
-    </script>
-    <!-- COPY THE CODE UNTIL HERE INTO SQUARESPACE -->
-  </body>
-</html>
+  document.head.appendChild(scriptTag);
+</script>
+
+<script>
+  /* Define what happens when they press next */
+  function toPayment() {
+    const membershipForm = document.getElementById("membership_form");
+    membershipForm.action = backendEndpoint;
+
+    if (!membershipForm.checkValidity()) return;
+    // Hide the current tab:
+    document.getElementById("infoTab").style.display = "none";
+    // Display the next tab
+    document.getElementById("paymentTab").style.display = "inline";
+
+    paypal
+      .Buttons({
+        style: {
+          shape: "pill",
+          color: "gold",
+          layout: "vertical",
+          label: "pay",
+        },
+        createOrder: function (data, actions) {
+          const typeDropdown = document.getElementById("membership_type");
+          const value = PRICING[
+            typeDropdown.options[typeDropdown.selectedIndex].value
+          ].toString();
+          return actions.order.create({
+            purchase_units: [{ amount: { value } }],
+          });
+        },
+        onApprove: function (data) {
+          document.getElementById("paymentTab").style.display = "none";
+          document.getElementById("loader").style.display = "block";
+          document.getElementById("orderID").value = data.orderID;
+          membershipForm.submit();
+        },
+      })
+      .render("#paypal-button-container");
+  }
+</script>

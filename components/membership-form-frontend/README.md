@@ -35,6 +35,14 @@ Here are the steps to run the form on your computer.
 
 5. For the form submission to submit properly, you need to also be [running `membership-form-backend` locally](../membership-form-backend/README.md).
 
+### Running on squarespace (as a test)
+
+1. Make sure the variable `isDevelopment` in `index.html` is still `true`.
+
+2. Copy paste the content of `index.html` into a hidden webpage on Squarespace using the "Code" component on squarespace.
+
+3. Test it (see below)!
+
 ### Testing the form
 
 While completing the form, check the following:
@@ -49,13 +57,11 @@ Complete the payment and then check the following in the POST request to the bac
 - [ ] Request is being sent to correct URL (not localhost)
 - [ ] Request form data contains every field and the data you inputted.
 
-### Deploying the form
+### Deploying the form on squarespace
 
-1. Set the variable `isDevelopment` in `index.html` to `false`.
+1. :warning: Set the variable `isDevelopment` in `index.html` to `false`.
 
-2. Copy paste the content of `index.html` into the Squarespace code block. Only copy the code within the `<body>` tag (not including the tag itself).
-
-3. Test it (see above)!
+2. Copy paste the content of index.html into the existing code block on the Squarespace membership sign up form page.
 
 ## Design considerations
 
