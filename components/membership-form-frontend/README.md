@@ -25,25 +25,29 @@ In this section, I discuss the different steps involved in developing to the for
 
 Here are the steps to run the form on your computer.
 
-1. Set the variable `isDevelopment` in `index.html` to `true`.
+1. Clone this repository.
 
-2. Open `index.html` in your browser. Note that there will be no styling as explained above.
+2. Set the variable `isDevelopment` in `index.html` to `true`.
 
-3. Fill out the form and complete a PayPal purchase using a [Personal PayPal Sandbox Account](https://developer.paypal.com/docs/api-basics/sandbox/accounts/).
+3. Open `index.html` in your browser. Note that there will be no styling as explained above.
 
-4. For the form submission to submit properly, you need to also be [running `membership-form-backend` locally](../membership-form-backend/README.md).
+4. Fill out the form and complete a PayPal purchase using a [Personal PayPal Sandbox Account](https://developer.paypal.com/docs/api-basics/sandbox/accounts/).
 
-### Testing locally
+5. For the form submission to submit properly, you need to also be [running `membership-form-backend` locally](../membership-form-backend/README.md).
 
-1. Get the backend running as explained in [the README](../membership-form-backend).
+### Testing the form
 
-2. Open `index.html` in your browser.
+While completing the form, check the following:
 
-3. Open your browser's developer panel and navigate to the Network tab.
+- [ ] Form styling renders and is aesthetically pleasing (only when testing on Squarespace).
+- [ ] Form will not allow submission without the required fields or with an invalid email.
+- [ ] Spinner displays while the form submits.
 
-4. Complete the form and payment as explained above.
+Right before paying, open the network tab in your browser developer tools.
+Complete the payment and then check the following in the POST request to the backend.
 
-5. Inspect the request in the network tab to ensure all the data is properly formatted.
+- [ ] Request is being sent to correct URL (not localhost)
+- [ ] Request form data contains every field and the data you inputted.
 
 ### Deploying the form
 
@@ -51,21 +55,7 @@ Here are the steps to run the form on your computer.
 
 2. Copy paste the content of `index.html` into the Squarespace code block. Only copy the code within the `<body>` tag (not including the tag itself).
 
-3. Test it! (see [the testing docs](/docs/Testing.md))
-
-### Testing in production
-
-While completing the form on the squarespace website, check the following:
-
-- [ ] Form styling renders and is aesthetically pleasing.
-- [ ] Form will not allow submission without the required fields or with an invalid email.
-- [ ] Spinner displays on submission
-
-Right before paying inspect open the network tab in your browser developer tools.
-Check for the following for the POST request sent when you pay.
-
-- [ ] Request is being sent to correct URL (not localhost)
-- [ ] Request form data contains every field and the data you inputted.
+3. Test it (see above)!
 
 ## Design considerations
 
