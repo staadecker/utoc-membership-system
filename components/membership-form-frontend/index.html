@@ -6,6 +6,26 @@
   </head>
   <body>
     <!--  COPY THE CODE FROM HERE INTO SQUARESPACE-->
+    <script>
+      /* DECLARE CONSTANTS */
+      const isDevelopment = true;
+
+      const clientId = isDevelopment
+        ? "AWFyQG1zwSVne93vPz9Mbguz97bmAAQGhrIOP2KH2wYshfBdDHXnCLBE6k47-msWp8fV7A6f5Js3OiVa"
+        : "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM";
+
+      const backendEndpoint = isDevelopment
+        ? "http://localhost:8080"
+        : "https://northamerica-northeast1-utoc-payment.cloudfunctions.net/on-membership-payment";
+
+      const PRICING = {
+        student: 20,
+        regular: 30,
+        family: 40,
+        summer: 10,
+      };
+    </script>
+
     <div class="form-wrapper">
       <form id="membership_form" method="post">
         <div id="infoTab" class="field-list">
@@ -140,11 +160,11 @@
       </form>
     </div>
 
-    <div class="loader" id="loader"></div>
+    <div id="loader"></div>
 
     <style>
       /* https://www.w3schools.com/howto/howto_css_loader.asp */
-      .loader {
+      #loader {
         display: none;
         border: 16px solid #f3f3f3; /* Light grey */
         border-top: 16px solid #3498db; /* Blue */
@@ -155,67 +175,65 @@
       }
 
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
     </style>
 
-    <script
-      src="https://www.paypal.com/sdk/js?client-id=AVhTs5Ui8fjSnR5-CH-IZ2_NQvgyFYZHUEW-tYaBZKQS61gnrpc9rjc_4bVldcQklV1WPtswTRG_B-Hc&currency=CAD"
-      data-sdk-integration-source="button-factory"
-    ></script>
+    <script>
+      /* Import the PayPal SDK */
+      const scriptTag = document.createElement("script");
+      scriptTag.setAttribute(
+        "src",
+        "https://www.paypal.com/sdk/js?currency=CAD&client-id=" + clientId
+      );
+      scriptTag.setAttribute("data-sdk-integration-source", "button-factory");
+
+      document.head.appendChild(scriptTag);
+    </script>
 
     <script>
-      const isDevelopment = true;
-
-      const PRICING = {
-        student: 20,
-        regular: 30,
-        family: 40,
-        summer: 10,
-      };
-
-      const membershipForm = document.getElementById("membership_form");
-      const loader = document.getElementById("loader");
-
-      if (isDevelopment) membershipForm.action = "http://localhost:8080";
-      else
-        membershipForm.action =
-          "https://northamerica-northeast1-utoc-payment.cloudfunctions.net/on-membership-payment";
-
+      /* Define what happens when they press next */
       function toPayment() {
+        const membershipForm = document.getElementById("membership_form");
+        membershipForm.action = backendEndpoint;
+
         if (!membershipForm.checkValidity()) return;
         // Hide the current tab:
         document.getElementById("infoTab").style.display = "none";
         // Display the next tab
         document.getElementById("paymentTab").style.display = "inline";
-      }
 
-      paypal
-        .Buttons({
-          style: {
-            shape: "rect",
-            color: "blue",
-            layout: "vertical",
-            label: "paypal",
-          },
-          createOrder: function (data, actions) {
-            const typeDropdown = document.getElementById("membership_type");
-            const value = PRICING[
-              typeDropdown.options[typeDropdown.selectedIndex].value
-            ].toString();
-            return actions.order.create({
-              purchase_units: [{ amount: { value } }],
-            });
-          },
-          onApprove: function (data) {
-            document.getElementById("paymentTab").style.display = "none";
-            document.getElementById("loader").style.display="block";
-            document.getElementById("orderID").value = data.orderID;
-            membershipForm.submit();
-          },
-        })
-        .render("#paypal-button-container");
+        paypal
+          .Buttons({
+            style: {
+              shape: "pill",
+              color: "gold",
+              layout: "vertical",
+              label: "pay",
+            },
+            createOrder: function (data, actions) {
+              const typeDropdown = document.getElementById("membership_type");
+              const value = PRICING[
+                typeDropdown.options[typeDropdown.selectedIndex].value
+              ].toString();
+              return actions.order.create({
+                purchase_units: [{ amount: { value } }],
+              });
+            },
+            onApprove: function (data) {
+              document.getElementById("paymentTab").style.display = "none";
+              document.getElementById("loader").style.display = "block";
+              document.getElementById("orderID").value = data.orderID;
+              membershipForm.submit();
+            },
+          })
+          .render("#paypal-button-container");
+      }
     </script>
     <!-- COPY THE CODE UNTIL HERE INTO SQUARESPACE -->
   </body>
