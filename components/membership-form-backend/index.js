@@ -1,13 +1,25 @@
-const isDevelopment = process.env.ENVIRONMENT === "development";
-
-if (isDevelopment) require("dotenv").config(); // Used during testing to load environment variables. See https://www.npmjs.com/package/dotenv.
-
-const PayPalCheckoutSDK = require("@paypal/checkout-server-sdk");
+const PayPalSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 // region Constants
+const secretIds = {
+  production: "",
+  development:
+    "projects/813526116571/secrets/membership-service-account-key/versions/1",
+};
+
+let Config = {
+  googleServiceAccountPrivateKey: null,
+  googleServiceAccountEmail: null,
+  payPalClientSecret: null,
+  payPalClientId: null,
+  databaseSpreadsheetId: null,
+  successUrl: "https://utoc.ca/membership-success",
+  useSandbox: null,
+};
+
 const MEMBERSHIP_TYPES = {
   student: {
     amount: 20,
@@ -21,17 +33,48 @@ const MEMBERSHIP_TYPES = {
     amount: 40,
     months: 12,
   },
-  summer : {
+  summer: {
     amount: 10,
     months: 4,
   },
 };
 
-const SUCCESS_URL = "https://utoc.ca/membership-success";
-
 // endregion
 
 // region Helpers
+/**
+ * Returns the secret id based on the environment
+ */
+const getSecretId = () => {
+  switch (process.env.ENVIRONMENT) {
+    case "production":
+      return secretIds.production;
+    case "development":
+      return secretIds.development;
+    default:
+      return null;
+  }
+};
+
+const loadConfigFromGoogleSecretManager = async () => {
+  const secretId = getSecretId();
+
+  // Exit if no secret ID (happens during unit tests)
+  if (!secretId) return;
+
+  // Read JSON secret from Google Cloud Secret Manager
+  const client = new SecretManagerServiceClient();
+  const versions = await client.accessSecretVersion({ name: secretId });
+  const loadedConfig = JSON.parse(versions[0].payload.data.toString());
+
+  // Use loaded JSON to populate Config object
+  // Replace all values that are null
+  for (const key in Config) {
+    if (Config[key] === null) {
+      Config[key] = loadedConfig[key];
+    }
+  }
+};
 
 /**
  * A custom error type that supports a status code
@@ -43,9 +86,11 @@ class ErrorWithStatus extends Error {
   }
 }
 
+/**
+ * Used to properly display times in Google sheets
+ */
 const convertToGoogleSheetsTimeStamp = (moment) =>
   (moment.unix() + 2209161600) / 86400;
-module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp;
 
 /**
  * Returns a user friendly error message that is displayed if the function returns an error code.
@@ -53,6 +98,9 @@ module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp;
 const getUserFriendlyErrorMessage = (details) =>
   `Oops! Something went wrong. Please contact UTOC.\n Details: ${details}`;
 
+/**
+ * Catches errors from the Cloud function and returns a more user friendly message to the user.
+ */
 const errorHandler = (func) => async (req, res) => {
   try {
     return await func(req, res);
@@ -61,14 +109,6 @@ const errorHandler = (func) => async (req, res) => {
     res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
   }
 };
-
-const fetchGoogleSecret = async (secretId) => {
-  const client = new SecretManagerServiceClient();
-  const [version] = await client.accessSecretVersion({ name: secretId });
-
-  return version.payload.data.toString();
-};
-
 // endregion
 
 // region Setup
@@ -79,16 +119,13 @@ const fetchGoogleSecret = async (secretId) => {
  * credentials have access.
  */
 const getPayPalClient = () => {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const args = [Config.payPalClientId, Config.payPalClientSecret];
 
-  // TODO Switch to prod
-  const environment = new PayPalCheckoutSDK.core.SandboxEnvironment(
-    clientId,
-    clientSecret
-  );
+  const environment = Config.useSandbox
+    ? new PayPalSDK.core.SandboxEnvironment(...args)
+    : new PayPalSDK.core.LiveEnvironment(...args);
 
-  return new PayPalCheckoutSDK.core.PayPalHttpClient(environment);
+  return new PayPalSDK.core.PayPalHttpClient(environment);
 };
 
 /**
@@ -96,13 +133,11 @@ const getPayPalClient = () => {
  * Authentication is performed through a service account key file for development ("creds.json")
  */
 const getGoogleSheet = async () => {
-  const doc = new GoogleSpreadsheet(process.env.DB_SPREADSHEET_ID);
+  const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
 
   await doc.useServiceAccountAuth({
-    client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: await fetchGoogleSecret(
-      process.env.GOOGLE_PRIVATE_KEY_SECRET_ID
-    ),
+    client_email: Config.googleServiceAccountEmail,
+    private_key: Config.googleServiceAccountPrivateKey,
   });
 
   await doc.loadInfo();
@@ -114,6 +149,7 @@ const getGoogleSheet = async () => {
 // region Operations
 /**
  * This function verifies that the request has the right format. If not, it throws.
+ * Returns the membership type
  */
 const validateRequest = (req) => {
   if (req.method !== "POST")
@@ -131,13 +167,11 @@ const validateRequest = (req) => {
       400
     );
 
-  return { membershipInfo: MEMBERSHIP_TYPES[req.body.membership_type] };
+  return MEMBERSHIP_TYPES[req.body.membership_type];
 };
 
-const capturePayment = async (orderID, membershipInfo, payPalClient) => {
-  const getOrderRequest = new PayPalCheckoutSDK.orders.OrdersGetRequest(
-    orderID
-  );
+const validatePayment = async (orderID, payPalClient, membershipType) => {
+  const getOrderRequest = new PayPalSDK.orders.OrdersGetRequest(orderID);
 
   let order;
   try {
@@ -150,7 +184,7 @@ const capturePayment = async (orderID, membershipInfo, payPalClient) => {
     );
   }
 
-  const expectedPayment = membershipInfo.amount;
+  const expectedPayment = membershipType.amount;
   const authorizedPayment = parseInt(
     order.result.purchase_units[0].amount.value
   );
@@ -164,8 +198,10 @@ const capturePayment = async (orderID, membershipInfo, payPalClient) => {
       400
     );
   }
+};
 
-  const captureOrderRequest = new PayPalCheckoutSDK.orders.OrdersCaptureRequest(
+const capturePayment = async (orderID, payPalClient) => {
+  const captureOrderRequest = new PayPalSDK.orders.OrdersCaptureRequest(
     orderID
   );
 
@@ -200,35 +236,40 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
 
 // endregion
 
-const mainContent = async (req, res) => {
-  console.log("Received request!");
+const main = async (req, res) => {
+  console.log("Validating request...");
 
-  const { membershipInfo } = validateRequest(req);
+  const membershipType = validateRequest(req);
 
-  console.log("Request is valid.");
+  console.log("Loading dependencies...");
 
-  const externalDependencies = {
-    payPalClient: getPayPalClient(),
-    sheet: await getGoogleSheet(),
-  };
+  await loadConfigFromGoogleSecretManager();
+  const payPalClient = getPayPalClient();
+  const googleSheet = await getGoogleSheet();
 
-  await capturePayment(
+  console.log("Validating payment...");
+
+  await validatePayment(
     req.body.orderID,
-    membershipInfo,
-    externalDependencies.payPalClient
+    payPalClient,
+    membershipType
   );
 
-  console.log("Payment captured");
+  console.log("Writing new member to database...");
 
   await writeAccountToDatabase(
     req.body,
-    membershipInfo,
-    externalDependencies.sheet
+    membershipType,
+    googleSheet
   );
 
-  console.log("Account added to database");
+  console.log("Capturing (accepting) payment...");
 
-  res.redirect(SUCCESS_URL);
+  await capturePayment(req.body.orderID, payPalClient);
+
+  console.log("Redirecting to success page...");
+
+  res.redirect(Config.successUrl);
 };
 
-module.exports.main = errorHandler(mainContent);
+module.exports.main = errorHandler(main);
