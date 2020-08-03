@@ -80,9 +80,10 @@ const loadConfigFromGoogleSecretManager = async () => {
  * A custom error type that supports a status code
  */
 class ErrorWithStatus extends Error {
-  constructor(message, status) {
+  constructor(message, status, wasCharged) {
     super(message);
     this.status = status;
+    this.wasCharged = wasCharged;
   }
 }
 
@@ -95,8 +96,26 @@ const convertToGoogleSheetsTimeStamp = (moment) =>
 /**
  * Returns a user friendly error message that is displayed if the function returns an error code.
  */
-const getUserFriendlyErrorMessage = (details) =>
-  `Oops! Something went wrong. Please contact UTOC.\n Details: ${details}`;
+const getUserFriendlyErrorMessage = (details, wasCharged) => {
+  let message;
+
+  switch (wasCharged) {
+    case false:
+      message =
+        "Oops! Something went wrong. You have not been charged. Please contact UTOC.";
+      break;
+    case true:
+      message =
+        "Oops! Your payment has been processed however something went wrong. Please contact UTOC.";
+      break;
+    default:
+      message = "Oops! Something went wrong. Please contact UTOC.";
+  }
+
+  message += `\n\nDetails:\n${details}`;
+
+  return message;
+};
 
 /**
  * Catches errors from the Cloud function and returns a more user friendly message to the user.
@@ -106,7 +125,9 @@ const errorHandler = (func) => async (req, res) => {
     return await func(req, res);
   } catch (e) {
     console.error(e);
-    res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
+    res
+      .status(e.status || 500)
+      .send(getUserFriendlyErrorMessage(e.message, e.wasCharged));
   }
 };
 // endregion
@@ -153,10 +174,14 @@ const getGoogleSheet = async () => {
  */
 const validateRequest = (req) => {
   if (req.method !== "POST")
-    throw new ErrorWithStatus("Invalid request. Not using POST method", 400);
+    throw new ErrorWithStatus(
+      "Invalid request. Not using POST method",
+      400,
+      false
+    );
 
   if (typeof req.body.orderID !== "string")
-    throw new ErrorWithStatus("No orderID contained in request.", 400);
+    throw new ErrorWithStatus("No orderID contained in request.", 400, false);
 
   if (
     typeof req.body.membership_type !== "string" ||
@@ -164,7 +189,8 @@ const validateRequest = (req) => {
   )
     throw new ErrorWithStatus(
       "No valid membership_type contained in request.",
-      400
+      400,
+      false
     );
 
   return MEMBERSHIP_TYPES[req.body.membership_type];
@@ -180,7 +206,8 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     console.error(e);
     throw new ErrorWithStatus(
       "Failed to retrieve your PayPal Order given the provided ID.",
-      500
+      500,
+      false
     );
   }
 
@@ -195,7 +222,8 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     );
     throw new ErrorWithStatus(
       "Received payment doesn't match expected payment.",
-      400
+      400,
+      false
     );
   }
 };
@@ -229,7 +257,8 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
     if (requestBody.hasOwnProperty(key) && !row.hasOwnProperty(key))
       throw new ErrorWithStatus(
         `Missing parameter '${key}' in Google Sheet database header.`,
-        500
+        500,
+        true
       );
   }
 };
