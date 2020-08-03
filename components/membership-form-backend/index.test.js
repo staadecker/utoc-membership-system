@@ -13,15 +13,28 @@ const {
 
 const app = getServer(main, SignatureType.HTTP);
 
+const mockValidBody = {
+  firstName: "Martin",
+  lastName: "Last",
+  school: "U of T",
+  programAndCollege: "EngSci :)",
+  email: "somerandom-email-jljdsf@mail.utoronto.ca",
+  foundUtoc: '"you talked" to me',
+  interestedInFamilyEvent: "no",
+  membership_type: "student",
+  orderID: "0NY62877GC1270645",
+};
+
 /**
  * This replaces the entire paypal library with our own functions
  */
 jest.mock("@paypal/checkout-server-sdk", () => {
   const mocks = {
+    getOrderAmount: jest.fn(() => {
+      return "20";
+    }),
     buildClient: jest.fn(),
-    executeRequest: jest.fn(),
-    captureOrder: jest.fn(),
-    getOrderRequest: jest.fn(),
+    captureRequest: jest.fn(),
   };
 
   return {
@@ -39,19 +52,25 @@ jest.mock("@paypal/checkout-server-sdk", () => {
       },
       PayPalHttpClient: class PayPalHttpClient {
         execute(request) {
-          return mocks.executeRequest(request);
+          if (request.name === "getOrderRequest")
+            return {
+              result: {
+                purchase_units: [{ amount: { value: mocks.getOrderAmount() } }],
+              },
+            };
+          else return mocks.captureRequest();
         }
       },
     },
     orders: {
       OrdersGetRequest: class OrdersGetRequest {
         constructor(orderID) {
-          return mocks.getOrderRequest(orderID);
+          this.name = "getOrderRequest";
         }
       },
       OrdersCaptureRequest: class OrdersCaputreRequest {
         constructor(orderID) {
-          return mocks.captureOrder(orderID);
+          this.name = "captureOrderRequest";
         }
       },
     },
@@ -59,7 +78,10 @@ jest.mock("@paypal/checkout-server-sdk", () => {
 });
 
 jest.mock("google-spreadsheet", () => {
-  const mocks = { createDocConnection: jest.fn(), addRow: jest.fn() };
+  const mocks = {
+    createDocConnection: jest.fn(),
+    addRow: jest.fn(() => mockValidBody),
+  };
   return {
     mocks,
     GoogleSpreadsheet: class GoogleSpreadsheet {
@@ -74,39 +96,27 @@ jest.mock("google-spreadsheet", () => {
   };
 });
 
-const validBody = {
-  firstName: "Martin",
-  lastName: "Last",
-  school: "U of T",
-  programAndCollege: "EngSci :)",
-  email: "somerandom-email-jljdsf@mail.utoronto.ca",
-  foundUtoc: '"you talked" to me',
-  interestedInFamilyEvent: "no",
-  membership_type: "student",
-  orderID: "0NY62877GC1270645",
-};
-
 describe("all tests", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   test("should fail with 400 if request is not a POST request or if missing orderId / membership type", async () => {
-    await request(app).get("/").send(validBody).expect(400);
-    await request(app).put("/").send(validBody).expect(400);
-    await request(app).delete("/").send(validBody).expect(400);
+    await request(app).get("/").send(mockValidBody).expect(400);
+    await request(app).put("/").send(mockValidBody).expect(400);
+    await request(app).delete("/").send(mockValidBody).expect(400);
 
     await request(app)
       .post("/")
-      .send({ ...validBody, membership_type: undefined })
+      .send({ ...mockValidBody, membership_type: undefined })
       .expect(400);
     await request(app)
       .post("/")
-      .send({ ...validBody, orderID: undefined })
+      .send({ ...mockValidBody, orderID: undefined })
       .expect(400);
 
-    expect(paypalMocks.captureOrder).not.toHaveBeenCalled();
-    expect(paypalMocks.getOrderRequest).not.toHaveBeenCalled();
+    expect(paypalMocks.getOrderAmount).not.toHaveBeenCalled();
+    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
     expect(paypalMocks.buildClient).not.toHaveBeenCalled();
 
     expect(sheetsMocks.createDocConnection).not.toHaveBeenCalled();
@@ -114,38 +124,51 @@ describe("all tests", () => {
   });
 
   test("should fail without capturing order if order amount is different then membership type", async () => {
-    paypalMocks.executeRequest.mockReturnValueOnce({
-      result: { purchase_units: [{ amount: { value: 13.33333 } }] },
+    paypalMocks.getOrderAmount.mockReturnValueOnce(13.3333);
+
+    await request(app).post("/").send(mockValidBody).expect(400);
+
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
+    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+  });
+
+  test("should fail without capturing order if paypal validation request fails", async () => {
+    paypalMocks.getOrderAmount.mockImplementationOnce(() => {
+      throw new Error();
     });
 
-    sheetsMocks.addRow.mockReturnValueOnce(validBody);
+    await request(app).post("/").send(mockValidBody).expect(500);
 
-    await request(app).post("/").send(validBody).expect(400);
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
+    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+  });
+
+  test("should not write user to database if capturing payment fails", async () => {
+    paypalMocks.captureRequest.mockImplementationOnce(() => {
+      throw new Error();
+    });
+
+    await request(app).post("/").send(mockValidBody).expect(500);
 
     expect(paypalMocks.getOrderRequest).toHaveBeenCalledTimes(1);
-    expect(paypalMocks.captureOrder).not.toHaveBeenCalled();
+    expect(paypalMocks.getCaptureOrderRequest).toHaveBeenCalledTimes(1);
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
   });
 
   test("should succeed to capture order and write to db with valid request", async () => {
-    paypalMocks.executeRequest.mockReturnValueOnce({
-      result: { purchase_units: [{ amount: { value: 20 } }] },
-    });
-
-    sheetsMocks.addRow.mockReturnValueOnce(validBody);
-
     await request(app)
       .post("/")
-      .send(validBody)
+      .send(mockValidBody)
       .expect(302)
       .expect("Location", "https://utoc.ca/membership-success");
 
-    expect(paypalMocks.captureOrder).toHaveBeenCalledTimes(1);
-
+    expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
     expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
 
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
-    expect(dataAdded).toMatchObject(validBody);
+    expect(dataAdded).toMatchObject(mockValidBody);
     expect(dataAdded.creationTime).toBeCloseTo(
       convertToGoogleSheetsTimeStamp(moment()),
       2

@@ -26,6 +26,7 @@
     "moment": "^2.27.0"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "collectCoverage": true
   }
 }
