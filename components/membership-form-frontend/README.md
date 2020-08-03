@@ -54,8 +54,8 @@ While completing the form, check the following:
 Right before paying, open the network tab in your browser developer tools.
 Complete the payment and then check the following in the POST request to the backend.
 
-- [ ] Request is being sent to correct URL (not localhost)
-- [ ] Request form data contains every field and the data you inputted.
+- [ ] Request is being sent to correct URL
+- [ ] Request data contains every field with the data you inputted.
 
 ### Deploying the form on squarespace
 
