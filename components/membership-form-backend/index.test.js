@@ -152,8 +152,8 @@ describe("all tests", () => {
 
     await request(app).post("/").send(mockValidBody).expect(500);
 
-    expect(paypalMocks.getOrderRequest).toHaveBeenCalledTimes(1);
-    expect(paypalMocks.getCaptureOrderRequest).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
   });
 

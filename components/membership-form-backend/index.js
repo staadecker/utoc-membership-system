@@ -249,23 +249,15 @@ const main = async (req, res) => {
 
   console.log("Validating payment...");
 
-  await validatePayment(
-    req.body.orderID,
-    payPalClient,
-    membershipType
-  );
-
-  console.log("Writing new member to database...");
-
-  await writeAccountToDatabase(
-    req.body,
-    membershipType,
-    googleSheet
-  );
+  await validatePayment(req.body.orderID, payPalClient, membershipType);
 
   console.log("Capturing (accepting) payment...");
 
   await capturePayment(req.body.orderID, payPalClient);
+
+  console.log("Writing new member to database...");
+
+  await writeAccountToDatabase(req.body, membershipType, googleSheet);
 
   console.log("Redirecting to success page...");
 
