@@ -32,6 +32,11 @@ jest.mock("@paypal/checkout-server-sdk", () => {
           return mocks.buildClient(clientId, clientSecret);
         }
       },
+      LiveEnvironment: class LiveEnvironment {
+        constructor(clientId, clientSecret) {
+          return mocks.buildClient(clientId, clientSecret);
+        }
+      },
       PayPalHttpClient: class PayPalHttpClient {
         execute(request) {
           return mocks.executeRequest(request);
@@ -77,7 +82,7 @@ const validBody = {
   email: "somerandom-email-jljdsf@mail.utoronto.ca",
   foundUtoc: '"you talked" to me',
   interestedInFamilyEvent: "no",
-  membership_type: "student-20$",
+  membership_type: "student",
   orderID: "0NY62877GC1270645",
 };
 

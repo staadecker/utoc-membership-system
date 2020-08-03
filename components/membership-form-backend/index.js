@@ -272,4 +272,5 @@ const main = async (req, res) => {
   res.redirect(Config.successUrl);
 };
 
+module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp; // Used by tests
 module.exports.main = errorHandler(main);
