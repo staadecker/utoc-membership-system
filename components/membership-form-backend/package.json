@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "cross-env ENVIRONMENT=development functions-framework --target=main --source=src",
+    "start": "cross-env ENVIRONMENT=development functions-framework --target=main",
     "prettier": "prettier --write .",
     "test": "jest",
     "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-payment"

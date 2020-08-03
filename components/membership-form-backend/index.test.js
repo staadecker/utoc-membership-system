@@ -1,5 +1,5 @@
 const request = require("supertest");
-const { main, convertToGoogleSheetsTimeStamp } = require("../src");
+const { main, convertToGoogleSheetsTimeStamp } = require("./index");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: paypalMocks } = require("@paypal/checkout-server-sdk");
 const moment = require("moment");
