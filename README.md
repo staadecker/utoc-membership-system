@@ -2,12 +2,21 @@
 
 This repository contains the different components used in the University of Toronto Outing Club's (UTOC's) membership system.
 
-## Business Context
+## System Context
 
 UTOC needs a way to track members, have an up-to-date member mailing list and accept membership payments online.
 This system aims to meet those needs.
 
-## System Components
+## System description
+
+This system tracks UTOC's members in a Google Sheets database.
+Members can be added manually by adding new rows to the database.
+The database is synchronized with a Google Groups mailing list.
+Finally, a membership sign up form is added to UTOC's website.
+The sign up form asks for membership info (name, email, etc.) as well as payment through PayPal.
+When the payment is complete, the member is added to the Google Sheets database.
+
+## Software Components
 
 This section presents the 3 different components of the system. Visit each component's README for component-specific details.
 
@@ -20,7 +29,6 @@ This form is embedded on our squarespace website and collects both membership in
 
 The second component is a Google Cloud function that receives the frontend form submission.
 The function verifies that the PayPal transaction is valid and adds the member to our Google Sheets database.
-We use Google Sheets to allow non-technical UTOC executives to manually add members if necessary (e.g. member pays in cash).
 
 ### [`mailing-list-synchronizer`](./components/mailing-list-synchronizer)
 
