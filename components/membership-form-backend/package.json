@@ -6,7 +6,8 @@
     "start": "cross-env ENVIRONMENT=development functions-framework --target=main",
     "prettier": "prettier --write .",
     "test": "jest",
-    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-payment"
+    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-membership-system-test",
+    "deploy-test": "gcloud config set project utoc-membership-system-test && gcloud builds submit"
   },
   "author": "Martin Staadecker",
   "license": "MIT",
