@@ -7,7 +7,7 @@ const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const secretIds = {
   production: "",
   development:
-    "projects/813526116571/secrets/membership-service-account-key/versions/1",
+    "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
 };
 
 let Config = {
@@ -39,8 +39,19 @@ const MEMBERSHIP_TYPES = {
   },
 };
 
+const STATE = {
+  notCapturedNoDb:
+    "You have not been charged and you were not added to our database.",
+  capturingNoDb: "You have not been added to our database.",
+  capturedNoDb:
+    "Your payment has been processed but you hav not been added to our database.",
+  capturedWritingToDb: "Your payment has been processed.",
+  capturedInDb:
+    "Your payment has been processed and you have been added to our database.",
+};
+
 // flag that helps display an relevant error message to the user if errors occur.
-let wasPaymentCaptured;
+let currentState;
 
 // endregion
 
@@ -99,22 +110,7 @@ const convertToGoogleSheetsTimeStamp = (moment) =>
  * Returns a user friendly error message that is displayed if the function returns an error code.
  */
 const getUserFriendlyErrorMessage = (details) => {
-  let message;
-
-  switch (wasPaymentCaptured) {
-    case false:
-      message =
-        "Oops! Something went wrong. You have not been charged. Please contact UTOC.";
-      break;
-    case true:
-      message =
-        "Oops! Your payment has been processed however something went wrong. Please contact UTOC.";
-      break;
-    default:
-      message = "Oops! Something went wrong. Please contact UTOC.";
-  }
-
-  message += `\n\nTechnical details:\n${details}`;
+  const message = `Oops!\n${currentState} An error has occurred, please contact UTOC.\n\nTechnical details:\n${details}`;
 
   return message.replace(/\n/g, "<br/>"); // Formats the newlines as HTML
 };
@@ -227,9 +223,9 @@ const capturePayment = async (orderID, payPalClient) => {
   );
 
   try {
-    wasPaymentCaptured = null; // So that errors in the request don't say the payment wasn't captured (we don't know)
+    currentState = STATE.capturingNoDb;
     await payPalClient.execute(captureOrderRequest);
-    wasPaymentCaptured = true;
+    currentState = STATE.capturedNoDb;
   } catch (e) {
     console.error(e);
     throw new ErrorWithStatus("Failed to accept (capture) your payment.", 500);
@@ -246,21 +242,23 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
     expiry: convertToGoogleSheetsTimeStamp(expiry),
   };
 
+  currentState = STATE.capturedWritingToDb;
   const row = await sheet.addRow(data);
+  currentState = STATE.capturedInDb;
 
-  for (let key in requestBody) {
-    if (requestBody.hasOwnProperty(key) && row[key] === undefined)
+  Object.keys(data).forEach((key) => {
+    if (row[key] === undefined)
       throw new ErrorWithStatus(
         `Missing parameter '${key}' in Google Sheet database header.`,
         500
       );
-  }
+  });
 };
 
 // endregion
 
 const main = async (req, res) => {
-  wasPaymentCaptured = false; // Initialize global variable
+  currentState = STATE.notCapturedNoDb; // Initialize global variable
 
   console.log("Validating request...");
 
