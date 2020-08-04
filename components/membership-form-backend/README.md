@@ -1,51 +1,49 @@
 # membership-form-backend
 
-This component is a Google Cloud Function that receives requests from the membership form frontend.
+This component is a script that runs whenever it receives an HTTP request from the [frontend membership sign up form](../membership-form-frontend).
+The script will read the member's information and the PayPal OrderID from the HTTP request and will:
 
-## Description
+a) verify that the payment amount matches the OrderID
 
-This function will receive an HTTP request from the frontend containing both a PayPal OrderID and the member's information.
-The function will verify the PayPal order, accept (capture) it and write the member's data to a Google Spreadsheet.
+b) accept (capture) the PayPal order
 
-## Conceptual Overview
+c) write the member's information to a Google Spreadsheet.
 
-### What is a Google Cloud Function?
+The script is run within the [Google Cloud Function](https://cloud.google.com/functions/docs/concepts/overview) service.
 
-A Google cloud function is a piece of code (a function) that will be executed by Google upon a condition.
-See [here](https://cloud.google.com/functions/docs/concepts/overview).
-Google Cloud functions is a service that's part of Google's [Google Cloud Platform](https://cloud.google.com/).
+## Development
 
-### What does our Google Cloud function do?
+In this section, I discuss the different steps involved in developing the script.
 
-In our case, our cloud function will run whenever someone submits the membership sign up form on UTOC's website.
-
-The cloud function will:
-
-1. Verify that the amount authorized through PayPal matches the membership type.
-
-2. Accept (or "capture") the payment (transfers money to UTOC).
-
-3. Add the new member to the Google Sheets database.
-
-4. Add the new member to the members' Google Groups (which we use as a mailing list).
-
-## Technical Overview
-
-### How to test the cloud function?
-
-#### Setup
+### Setup
 
 1. [Install NodeJS 10](https://nodejs.org/en/download/).
 
-2. In this directory, run `npm install` in terminal.
+2. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs).
 
-3. Run `npm run auth` to login and verify that you have access to the staging environment.
+3. In this directory, run `npm install` in terminal. This will install the script's dependencies.
 
-#### Run
+4. Run `npm run auth` and login with your `@utoc` account. This will allow you to access the staging environment.
 
-In this directory, run `npm start`.
+### Run the script on your computer
 
-#### Test
+In this directory, run `npm start`. This prepare the script on your local computer.
+Any form submissions from the frontend will now trigger the script.
 
-Use the form in `membership_form/index.html` to submit requests to the cloud function.
-Make sure to change the submission endpoint to `localhost`.
+### Test the script
+
+- [ ] Run `npm run test` to make sure the unit tests pass.
+
+- [ ] Make a form submission from the frontend and verify that the member's data gets properly added to the database.
+      Make sure to test submissions that have some empty fields.
+
+### Troubleshooting common errors
+
+- `Unable to detect a Project Id`: You likely have not run `npm run auth` recently.
+
+- `PERMISSION_DENIED: Permission 'secretmanager.versions.access' denied for resource`:
+  Your account that you logged in with does not have access to the Secret in the Google Secret Manager.
+
+- `Failed to accept (capture) your payment.`: This happens most often when you try reusing the same orderID after having already processed that payment.
+
+- `Missing parameter '' in Google Sheet database header`: The Google sheets database doesn't have a column for that parameter and therefore that data was lost.
