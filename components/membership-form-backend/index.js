@@ -254,7 +254,7 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const row = await sheet.addRow(data);
 
   for (let key in requestBody) {
-    if (requestBody.hasOwnProperty(key) && !row.hasOwnProperty(key))
+    if (requestBody.hasOwnProperty(key) && row[key] === undefined)
       throw new ErrorWithStatus(
         `Missing parameter '${key}' in Google Sheet database header.`,
         500,
@@ -293,5 +293,7 @@ const main = async (req, res) => {
   res.redirect(Config.successUrl);
 };
 
-module.exports.convertToGoogleSheetsTimeStamp = convertToGoogleSheetsTimeStamp; // Used by tests
-module.exports.main = errorHandler(main);
+module.exports = {
+  convertToGoogleSheetsTimeStamp, // Used by tests
+  main: errorHandler(main),
+};

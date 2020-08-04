@@ -25,6 +25,14 @@ const mockValidBody = {
   orderID: "0NY62877GC1270645",
 };
 
+const notChargedErrorMessage = expect.stringContaining(
+  "You have not been charged."
+);
+
+const wasChargedErrorMessage = expect.stringContaining(
+  "Your payment has been processed"
+);
+
 /**
  * This replaces the entire paypal library with our own functions
  */
@@ -41,11 +49,13 @@ jest.mock("@paypal/checkout-server-sdk", () => {
     mocks,
     core: {
       SandboxEnvironment: class SandboxEnvironment {
+        // noinspection JSUnusedGlobalSymbols
         constructor(clientId, clientSecret) {
           return mocks.buildClient(clientId, clientSecret);
         }
       },
       LiveEnvironment: class LiveEnvironment {
+        // noinspection JSUnusedGlobalSymbols
         constructor(clientId, clientSecret) {
           return mocks.buildClient(clientId, clientSecret);
         }
@@ -64,11 +74,13 @@ jest.mock("@paypal/checkout-server-sdk", () => {
     },
     orders: {
       OrdersGetRequest: class OrdersGetRequest {
+        // noinspection JSUnusedGlobalSymbols,JSUnusedLocalSymbols
         constructor(orderID) {
           this.name = "getOrderRequest";
         }
       },
       OrdersCaptureRequest: class OrdersCaputreRequest {
+        // noinspection JSUnusedGlobalSymbols,JSUnusedLocalSymbols
         constructor(orderID) {
           this.name = "captureOrderRequest";
         }
@@ -85,12 +97,15 @@ jest.mock("google-spreadsheet", () => {
   return {
     mocks,
     GoogleSpreadsheet: class GoogleSpreadsheet {
+      // noinspection JSUnusedGlobalSymbols
       constructor(spreadsheet_Id) {
         this.sheetsByIndex = [{}, { addRow: mocks.addRow }];
         return mocks.createDocConnection(spreadsheet_Id);
       }
 
+      // noinspection JSUnusedGlobalSymbols
       useServiceAccountAuth() {}
+      // noinspection JSUnusedGlobalSymbols
       loadInfo() {}
     },
   };
@@ -99,62 +114,6 @@ jest.mock("google-spreadsheet", () => {
 describe("all tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  test("should fail with 400 if request is not a POST request or if missing orderId / membership type", async () => {
-    await request(app).get("/").send(mockValidBody).expect(400);
-    await request(app).put("/").send(mockValidBody).expect(400);
-    await request(app).delete("/").send(mockValidBody).expect(400);
-
-    await request(app)
-      .post("/")
-      .send({ ...mockValidBody, membership_type: undefined })
-      .expect(400);
-    await request(app)
-      .post("/")
-      .send({ ...mockValidBody, orderID: undefined })
-      .expect(400);
-
-    expect(paypalMocks.getOrderAmount).not.toHaveBeenCalled();
-    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
-    expect(paypalMocks.buildClient).not.toHaveBeenCalled();
-
-    expect(sheetsMocks.createDocConnection).not.toHaveBeenCalled();
-    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
-  });
-
-  test("should fail without capturing order if order amount is different then membership type", async () => {
-    paypalMocks.getOrderAmount.mockReturnValueOnce(13.3333);
-
-    await request(app).post("/").send(mockValidBody).expect(400);
-
-    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
-    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
-    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
-  });
-
-  test("should fail without capturing order if paypal validation request fails", async () => {
-    paypalMocks.getOrderAmount.mockImplementationOnce(() => {
-      throw new Error();
-    });
-
-    await request(app).post("/").send(mockValidBody).expect(500);
-
-    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
-    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
-    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
-  });
-
-  test("should not write user to database if capturing payment fails", async () => {
-    paypalMocks.captureRequest.mockImplementationOnce(() => {
-      throw new Error();
-    });
-
-    await request(app).post("/").send(mockValidBody).expect(500);
-
-    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
-    expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
-    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
   });
 
   test("should succeed to capture order and write to db with valid request", async () => {
@@ -176,5 +135,79 @@ describe("all tests", () => {
     expect(dataAdded.expiry).toBeGreaterThan(
       convertToGoogleSheetsTimeStamp(moment())
     );
+  });
+
+  test("should fail with 400 if request is not a POST request or if missing orderId / membership_type", async () => {
+    await request(app).get("/").send(mockValidBody).expect(400);
+    await request(app).put("/").send(mockValidBody).expect(400);
+    await request(app).delete("/").send(mockValidBody).expect(400);
+
+    let res = await request(app)
+      .post("/")
+      .send({ ...mockValidBody, membership_type: undefined })
+      .expect(400);
+    expect(res.text).toEqual(notChargedErrorMessage);
+    res = await request(app)
+      .post("/")
+      .send({ ...mockValidBody, orderID: undefined })
+      .expect(400);
+    expect(res.text).toEqual(notChargedErrorMessage);
+
+    expect(paypalMocks.getOrderAmount).not.toHaveBeenCalled();
+    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
+    expect(paypalMocks.buildClient).not.toHaveBeenCalled();
+
+    expect(sheetsMocks.createDocConnection).not.toHaveBeenCalled();
+    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+  });
+
+  test("should fail without capturing order if order amount is different than membership_type", async () => {
+    paypalMocks.getOrderAmount.mockReturnValueOnce(13.3333);
+
+    const res = await request(app).post("/").send(mockValidBody).expect(400);
+    expect(res.text).toEqual(notChargedErrorMessage);
+
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
+    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+  });
+
+  test("should fail without capturing order if PayPal validation request fails", async () => {
+    paypalMocks.getOrderAmount.mockImplementationOnce(() => {
+      throw new Error();
+    });
+
+    const res = await request(app).post("/").send(mockValidBody).expect(500);
+    expect(res.text).toEqual(notChargedErrorMessage);
+
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
+    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+  });
+
+  test("should not write user to database if capturing payment fails", async () => {
+    paypalMocks.captureRequest.mockImplementationOnce(() => {
+      throw new Error();
+    });
+
+    await request(app).post("/").send(mockValidBody).expect(500);
+
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
+    expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+  });
+
+  test("should return an error if some fields are dropped when writing to database", async () => {
+    sheetsMocks.addRow.mockReturnValueOnce({
+      ...mockValidBody,
+      firstName: undefined, // override name to not exist in return value
+    });
+
+    const res = await request(app).post("/").send(mockValidBody).expect(500);
+    expect(res.text).toStrictEqual(wasChargedErrorMessage);
+
+    expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
+    expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
+    expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
   });
 });
