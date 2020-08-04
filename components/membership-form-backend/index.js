@@ -39,6 +39,9 @@ const MEMBERSHIP_TYPES = {
   },
 };
 
+// flag that helps display an relevant error message to the user if errors occur.
+let wasPaymentCaptured;
+
 // endregion
 
 // region Helpers
@@ -80,10 +83,9 @@ const loadConfigFromGoogleSecretManager = async () => {
  * A custom error type that supports a status code
  */
 class ErrorWithStatus extends Error {
-  constructor(message, status, wasCharged) {
+  constructor(message, status) {
     super(message);
     this.status = status;
-    this.wasCharged = wasCharged;
   }
 }
 
@@ -96,10 +98,10 @@ const convertToGoogleSheetsTimeStamp = (moment) =>
 /**
  * Returns a user friendly error message that is displayed if the function returns an error code.
  */
-const getUserFriendlyErrorMessage = (details, wasCharged) => {
+const getUserFriendlyErrorMessage = (details) => {
   let message;
 
-  switch (wasCharged) {
+  switch (wasPaymentCaptured) {
     case false:
       message =
         "Oops! Something went wrong. You have not been charged. Please contact UTOC.";
@@ -112,9 +114,9 @@ const getUserFriendlyErrorMessage = (details, wasCharged) => {
       message = "Oops! Something went wrong. Please contact UTOC.";
   }
 
-  message += `\n\nDetails:\n${details}`;
+  message += `\n\nTechnical details:\n${details}`;
 
-  return message;
+  return message.replace(/\n/g, "<br/>"); // Formats the newlines as HTML
 };
 
 /**
@@ -125,9 +127,7 @@ const errorHandler = (func) => async (req, res) => {
     return await func(req, res);
   } catch (e) {
     console.error(e);
-    res
-      .status(e.status || 500)
-      .send(getUserFriendlyErrorMessage(e.message, e.wasCharged));
+    res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
   }
 };
 // endregion
@@ -174,14 +174,10 @@ const getGoogleSheet = async () => {
  */
 const validateRequest = (req) => {
   if (req.method !== "POST")
-    throw new ErrorWithStatus(
-      "Invalid request. Not using POST method",
-      400,
-      false
-    );
+    throw new ErrorWithStatus("Invalid request. Not using POST method", 400);
 
   if (typeof req.body.orderID !== "string")
-    throw new ErrorWithStatus("No orderID contained in request.", 400, false);
+    throw new ErrorWithStatus("No orderID contained in request.", 400);
 
   if (
     typeof req.body.membership_type !== "string" ||
@@ -189,8 +185,7 @@ const validateRequest = (req) => {
   )
     throw new ErrorWithStatus(
       "No valid membership_type contained in request.",
-      400,
-      false
+      400
     );
 
   return MEMBERSHIP_TYPES[req.body.membership_type];
@@ -206,8 +201,7 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     console.error(e);
     throw new ErrorWithStatus(
       "Failed to retrieve your PayPal Order given the provided ID.",
-      500,
-      false
+      500
     );
   }
 
@@ -222,8 +216,7 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     );
     throw new ErrorWithStatus(
       "Received payment doesn't match expected payment.",
-      400,
-      false
+      400
     );
   }
 };
@@ -234,7 +227,9 @@ const capturePayment = async (orderID, payPalClient) => {
   );
 
   try {
+    wasPaymentCaptured = null; // So that errors in the request don't say the payment wasn't captured (we don't know)
     await payPalClient.execute(captureOrderRequest);
+    wasPaymentCaptured = true;
   } catch (e) {
     console.error(e);
     throw new ErrorWithStatus("Failed to accept (capture) your payment.", 500);
@@ -257,8 +252,7 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
     if (requestBody.hasOwnProperty(key) && row[key] === undefined)
       throw new ErrorWithStatus(
         `Missing parameter '${key}' in Google Sheet database header.`,
-        500,
-        true
+        500
       );
   }
 };
@@ -266,6 +260,8 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
 // endregion
 
 const main = async (req, res) => {
+  wasPaymentCaptured = false; // Initialize global variable
+
   console.log("Validating request...");
 
   const membershipType = validateRequest(req);
