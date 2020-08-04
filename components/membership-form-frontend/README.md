@@ -27,7 +27,7 @@ Here are the steps to run the form on your computer.
 
 1. Clone this repository.
 
-2. Set the variable `isDevelopment` in `index.html` to `true`.
+2. Set the variable `environment` in `index.html` to `"dev"`.
 
 3. Open `index.html` in your browser. Note that there will be no styling as explained above.
 
@@ -37,7 +37,7 @@ Here are the steps to run the form on your computer.
 
 ### Running on squarespace (as a test)
 
-1. Make sure the variable `isDevelopment` in `index.html` is still `true`.
+1. Set the variable `environment` in `index.html` to `"test"`.
 
 2. Copy paste the content of `index.html` into a hidden webpage on Squarespace using the "Code" component on squarespace.
 
@@ -59,7 +59,7 @@ Complete the payment and then check the following in the POST request to the bac
 
 ### Deploying the form on squarespace
 
-1. :warning: Set the variable `isDevelopment` in `index.html` to `false`.
+1. :warning: Set the variable `environment` in `index.html` to `"prod"`.
 
 2. Copy paste the content of index.html into the existing code block on the Squarespace membership sign up form page.
 

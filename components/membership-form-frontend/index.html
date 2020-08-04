@@ -1,14 +1,24 @@
 <script>
   /* DECLARE CONSTANTS */
-  const isDevelopment = true;
+  const environment = "dev";
 
-  const clientId = isDevelopment
-    ? "AWFyQG1zwSVne93vPz9Mbguz97bmAAQGhrIOP2KH2wYshfBdDHXnCLBE6k47-msWp8fV7A6f5Js3OiVa"
-    : "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM";
+  const clientId =
+    environment === "prod"
+      ? "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM"
+      : "AWFyQG1zwSVne93vPz9Mbguz97bmAAQGhrIOP2KH2wYshfBdDHXnCLBE6k47-msWp8fV7A6f5Js3OiVa";
 
-  const backendEndpoint = isDevelopment
-    ? "http://localhost:8080"
-    : "https://northamerica-northeast1-utoc-payment.cloudfunctions.net/on-membership-payment";
+  function getBackendEndpoint() {
+    switch (environment) {
+      case "prod":
+        return "";
+      case "dev":
+        return "http://localhost:8080";
+      case "test":
+        return "https://northamerica-northeast1-utoc-membership-system-test.cloudfunctions.net/membership-form-backend-test";
+    }
+  }
+
+  const backendEndpoint = getBackendEndpoint();
 
   const PRICING = {
     student: 20,
