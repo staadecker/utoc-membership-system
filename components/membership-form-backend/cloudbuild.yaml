@@ -1,0 +1,13 @@
+steps:
+  - name: "gcr.io/cloud-builders/gcloud"
+    args:
+      - functions
+      - deploy
+      - membership-form-backend
+      - --source=.
+      - --region=northamerica-northeast1
+      - --allow-unauthenticated
+      - --entry-point=main
+      - --runtime=nodejs10
+      - --trigger-http
+#      - --service-account=    # can be used during creation to specify a service account
