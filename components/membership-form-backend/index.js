@@ -237,8 +237,8 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const expiry = moment(creationTime).add(membershipInfo.months, "months");
   const data = {
     ...requestBody,
-    creationTime: convertToGoogleSheetsTimeStamp(creationTime),
-    inGoogleGroup: false,
+    creation_time: convertToGoogleSheetsTimeStamp(creationTime),
+    in_google_group: false,
     expiry: convertToGoogleSheetsTimeStamp(expiry),
   };
 
