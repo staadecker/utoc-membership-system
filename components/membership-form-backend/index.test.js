@@ -1,3 +1,5 @@
+process.env.ENVIRONMENT = "test";
+
 const request = require("supertest");
 const { main, convertToGoogleSheetsTimeStamp } = require("./index");
 const { mocks: sheetsMocks } = require("google-spreadsheet");

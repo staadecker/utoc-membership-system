@@ -65,8 +65,10 @@ const getSecretId = () => {
       return secretIds.production;
     case "development":
       return secretIds.development;
-    default:
+    case "test":
       return null;
+    default:
+      throw new ErrorWithStatus("Unknown environment", 500);
   }
 };
 
