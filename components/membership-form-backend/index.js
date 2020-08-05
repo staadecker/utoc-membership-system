@@ -260,6 +260,8 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
 // endregion
 
 const main = async (req, res) => {
+  console.log("Received request.");
+
   currentState = STATE.notCapturedNoDb; // Initialize global variable
 
   console.log("Validating request...");
@@ -287,6 +289,8 @@ const main = async (req, res) => {
   console.log("Redirecting to success page...");
 
   res.redirect(Config.successUrl);
+
+  console.log("Done.")
 };
 
 module.exports = {
