@@ -24,6 +24,7 @@ In this section, I discuss the different steps involved in developing the script
 3. In this directory, run `npm install` in terminal. This will install the script's dependencies.
 
 4. Run `npm run auth` and login with your `@utoc` account. This will allow you to access the staging environment.
+You will need to run this command every 8h to re-authenticate.
 
 ### Run the script on your computer
 
@@ -36,6 +37,10 @@ Any form submissions from the frontend will now trigger the script.
 
 - [ ] Make a form submission from the frontend and verify that the member's data gets properly added to the database.
       Make sure to test submissions that have some empty fields.
+
+### Deploy the script for testing
+
+Run `npm run deploy-test`.
 
 ### Troubleshooting common errors
 
