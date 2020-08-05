@@ -154,12 +154,18 @@
   </form>
 </div>
 
-<div id="loader"></div>
+<div id="loader-container">
+  <h3>Please wait. This may take a minute...</h3>
+  <div id="loader"></div>
+</div>
 
 <style>
+  #loader-container {
+    display: none;
+  }
+
   /* https://www.w3schools.com/howto/howto_css_loader.asp */
   #loader {
-    display: none;
     border: 16px solid #f3f3f3; /* Light grey */
     border-top: 16px solid #3498db; /* Blue */
     border-radius: 50%;
@@ -221,7 +227,7 @@
         },
         onApprove: function (data) {
           document.getElementById("paymentTab").style.display = "none";
-          document.getElementById("loader").style.display = "block";
+          document.getElementById("loader-container").style.display = "block";
           document.getElementById("orderID").value = data.orderID;
           membershipForm.submit();
         },
