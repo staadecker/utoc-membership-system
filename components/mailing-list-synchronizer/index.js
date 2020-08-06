@@ -118,7 +118,7 @@ async function addUserToGoogleGroup(googleGroupClient, email) {
 
 // endregion
 
-module.exports.main = async () => {
+module.exports.main = async (_, res) => {
   console.log("Received request.");
 
   console.log("Loading dependencies...");
@@ -130,6 +130,10 @@ module.exports.main = async () => {
   console.log("Getting mailing list members...");
 
   console.log("Iterating through database...");
+
+  console.log("Responding with success to request...");
+
+  res.sendStatus(200);
 
   console.log("Done.");
 };

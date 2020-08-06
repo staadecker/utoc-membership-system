@@ -4,7 +4,7 @@
   "main": "local_test_server.js",
   "private": true,
   "scripts": {
-    "start": "functions-framework --target=main",
+    "start": "cross-env ENVIRONMENT=development functions-framework --target=main",
     "prettier": "prettier --write .",
     "test": "jest",
     "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-payment"
@@ -13,12 +13,14 @@
   "license": "MIT",
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.6.0",
+    "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "jest": "^26.1.0",
     "prettier": "^2.0.5",
     "supertest": "^4.0.2"
   },
   "dependencies": {
+    "@google-cloud/secret-manager": "^3.1.0",
     "google-spreadsheet": "^3.0.11",
     "googleapis": "^54.1.0"
   },
