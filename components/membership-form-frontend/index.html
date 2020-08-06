@@ -10,7 +10,7 @@
   function getBackendEndpoint() {
     switch (environment) {
       case "prod":
-        return "";
+        return "https://northamerica-northeast1-utoc-membership-system.cloudfunctions.net/membership-form-backend";
       case "dev":
         return "http://localhost:8080";
       case "test":

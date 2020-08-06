@@ -5,7 +5,7 @@ const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 // region Constants
 const secretIds = {
-  production: "",
+  production: "projects/757988677903/secrets/membership-form-backend-config/versions/latest",
   development:
     "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
 };
