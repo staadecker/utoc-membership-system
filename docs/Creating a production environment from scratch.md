@@ -6,7 +6,7 @@ These steps are intended to walk an experienced user through the process (or fut
 
 1. Log in to Google Cloud and make a new project.
 
-2. Enable the Cloud Build API, the Secret Manager API and the Google Sheets API.
+2. Enable the Cloud Build API, the Secret Manager API, the Google Sheets API and the Admin SDK.
 
 3. Create a Google Sheets with the same column headers as in the testing Google Sheets. Make note of the sheet id (in the URL).
 
