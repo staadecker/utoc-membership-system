@@ -1,6 +1,8 @@
-# Steps to create the Google Cloud Project
+# Steps to create a production implementation
 
-These steps describe how to create the Google Cloud Project.
+These steps describe how to get the code up and running and integrated with Google Cloud, PayPal and Google Sheets.
+I recommend you read the [System Architecture documentation](./System%20architecture.md) first to understand what you're doing.
+These steps are intended to walk an experienced user through the process (or future me) and not to teach you the process.
 
 1. Log in to Google Cloud and make a new project.
 
