@@ -42,6 +42,10 @@ Any form submissions from the frontend will now trigger the script.
 
 Run `npm run deploy-test`.
 
+### Deploy the script to production.
+
+Run `npm run deploy`.
+
 ### Troubleshooting common errors
 
 - `Unable to detect a Project Id`: You likely have not run `npm run auth` recently.
