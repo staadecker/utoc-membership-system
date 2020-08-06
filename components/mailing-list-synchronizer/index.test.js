@@ -1,5 +1,5 @@
 const request = require("supertest");
-const { main, convertToGoogleSheetsTimeStamp } = require("../src");
+const { main } = require("./index");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: googleMocks } = require("googleapis");
 const moment = require("moment");
@@ -51,18 +51,6 @@ jest.mock("googleapis", () => {
     },
   };
 });
-
-const validBody = {
-  firstName: "Martin",
-  lastName: "Last",
-  school: "U of T",
-  programAndCollege: "EngSci :)",
-  email: "somerandom-email-jljdsf@mail.utoronto.ca",
-  foundUtoc: '"you talked" to me',
-  interestedInFamilyEvent: "no",
-  membership_type: "student-20$",
-  orderID: "0NY62877GC1270645",
-};
 
 describe("all tests", () => {
   beforeEach(() => {
