@@ -1,7 +1,7 @@
 process.env.ENVIRONMENT = "test";
 
 const request = require("supertest");
-const { main, convertToGoogleSheetsTimeStamp } = require("./index");
+const { main } = require("./index");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: paypalMocks } = require("@paypal/checkout-server-sdk");
 const moment = require("moment");
@@ -113,6 +113,7 @@ jest.mock("google-spreadsheet", () => {
   };
 });
 
+// TODO test expiry values
 describe("all tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -130,15 +131,8 @@ describe("all tests", () => {
 
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
     expect(dataAdded).toMatchObject(validBody);
-    expect(dataAdded.creation_time).toBeCloseTo(
-      convertToGoogleSheetsTimeStamp(moment()),
-      2
-    );
-    expect(dataAdded.expiry).toBeGreaterThan(
-      convertToGoogleSheetsTimeStamp(moment())
-    );
-
-    expect(dataAdded.in_google_group).toStrictEqual(false);
+    expect(dataAdded.creation_time).toBeCloseTo(moment().unix(), 2);
+    expect(dataAdded.expiry).toBeGreaterThan(moment().unix());
   });
 
   test("should fail with 400 if request is not a POST request or if missing orderId / membership_type", async () => {

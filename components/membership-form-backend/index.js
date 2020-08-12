@@ -5,7 +5,8 @@ const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 // region Constants
 const secretIds = {
-  production: "projects/757988677903/secrets/membership-form-backend-config/versions/latest",
+  production:
+    "projects/757988677903/secrets/membership-form-backend-config/versions/latest",
   development:
     "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
 };
@@ -101,12 +102,6 @@ class ErrorWithStatus extends Error {
     this.status = status;
   }
 }
-
-/**
- * Used to properly display times in Google sheets
- */
-const convertToGoogleSheetsTimeStamp = (moment) =>
-  (moment.unix() + 2209161600) / 86400;
 
 /**
  * Returns a user friendly error message that is displayed if the function returns an error code.
@@ -239,9 +234,8 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const expiry = moment(creationTime).add(membershipInfo.months, "months");
   const data = {
     ...requestBody,
-    creation_time: convertToGoogleSheetsTimeStamp(creationTime),
-    in_google_group: false,
-    expiry: convertToGoogleSheetsTimeStamp(expiry),
+    creation_time: creationTime.unix(),
+    expiry: expiry.unix(),
   };
 
   currentState = STATE.capturedWritingToDb;
@@ -290,10 +284,9 @@ const main = async (req, res) => {
 
   res.redirect(Config.successUrl);
 
-  console.log("Done.")
+  console.log("Done.");
 };
 
 module.exports = {
-  convertToGoogleSheetsTimeStamp, // Used by tests
   main: errorHandler(main),
 };
