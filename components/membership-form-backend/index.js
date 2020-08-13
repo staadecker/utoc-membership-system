@@ -11,6 +11,8 @@ const secretIds = {
     "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
 };
 
+const PAYMENT_METHOD = "PayPal & Website";
+
 let Config = {
   googleServiceAccountPrivateKey: null,
   googleServiceAccountEmail: null,
@@ -236,6 +238,7 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
     ...requestBody,
     creation_time: creationTime.unix(),
     expiry: expiry.unix(),
+    payment_method: PAYMENT_METHOD,
   };
 
   currentState = STATE.capturedWritingToDb;

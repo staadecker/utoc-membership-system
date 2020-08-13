@@ -56,3 +56,5 @@ Run `npm run deploy`.
 - `Failed to accept (capture) your payment.`: This happens most often when you try reusing the same orderID after having already processed that payment.
 
 - `Missing parameter '' in Google Sheet database header`: The Google sheets database doesn't have a column for that parameter and therefore that data was lost.
+
+- `Getting metadata from plugin failed with error: invalid_grant`: You likely have not run `npm run auth` recently.
