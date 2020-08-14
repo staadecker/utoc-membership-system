@@ -9,12 +9,23 @@ const secretIds = {
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
 };
 
-let Config = {
+const Config = {
   googleServiceAccountPrivateKey: null,
   googleServiceAccountEmail: null,
   googleGroupEmail: null,
   adminEmail: null,
   databaseSpreadsheetId: null,
+};
+
+const EMAILS = {
+  addedToGroup: "fsfsadf",
+  removedFromGroup: "fsdfs",
+};
+
+const ACTIONS = {
+  remove: 0,
+  add: 1,
+  doNothing: 2,
 };
 
 // endregion
@@ -65,14 +76,8 @@ const errorHandler = (func) => async (...args) => {
   }
 };
 
-/**
- * Used to properly display times in Google sheets
- */
-const convertToGoogleSheetsTimeStamp = (moment) =>
-  (moment.unix() + 2209161600) / 86400;
-
-const isExpiryPast = (expiry) => {
-  return false; // TODO
+const sendEmail = (receiver, sendGridClient, templateId) => {
+  // TODO
 };
 
 // endregion
@@ -82,18 +87,18 @@ const isExpiryPast = (expiry) => {
 const getGoogleGroupClient = async () => {
   // Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
   const auth = new google.auth.GoogleAuth({
+    // TODO adapt for cloud usage
     keyFile:
       "C:\\Users\\machs\\Projects\\utoc\\membership-system\\components\\mailing-list-synchronizer\\creds.json",
     scopes: ["https://www.googleapis.com/auth/admin.directory.group"],
   });
+
   const authClient = await auth.getClient();
 
   // The following line is required since the Google Admin API needs to impersonate a real account
   // https://github.com/googleapis/google-api-nodejs-client/issues/1699
   // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
   authClient.subject = Config.adminEmail;
-  console.log(await auth.getProjectId());
-  console.log(await Config.adminEmail);
 
   return google.admin({ version: "directory_v1", auth: authClient });
 };
@@ -123,41 +128,64 @@ const getMembersInGroup = async (googleGroupClient) => {
     groupKey: Config.googleGroupEmail,
   });
 
-  const members = {};
-
-  for (const member of res.data.members) {
-    members[member.email] = false;
-  }
-
-  return members;
+  return res.data.members.map((m) => m.email);
 };
 
-const getRequiredChanges = async (googleSheet, membersInGroup) => {
+const readDatabase = async (googleSheet) => {
   const rows = await googleSheet.getRows();
-  const toAdd = [];
-  const toRemove = [];
+  const emailsInDb = {};
+  const time = Date.now() / 1000;
 
-  // For each row of the database
-  for (const { email, expiry } of rows) {
-    const isExpired = isExpiryPast(expiry);
-    const isInGoogleGroup = membersInGroup.hasOwnProperty(email);
+  for (const { email, expiry } of rows) emailsInDb[email] = expiry < time;
 
-    membersInGroup[email] = true; // Mark all members as true to indicate it's in the database
-
-    // Remove expired members
-    if (isInGoogleGroup && isExpired) toRemove.push(email);
-    // Add new members
-    if (!isInGoogleGroup && !isExpired) toAdd.push(email);
-  }
-
-  // For all members that were not marked as true, they're not in the database and should be removed from the group
-  Object.entries(membersInGroup).forEach(([email, isInDatabase]) => {
-    if (!isInDatabase) toRemove.push(email);
-  });
-
-  return { toAdd, toRemove };
+  return emailsInDb;
 };
 
+/**
+ *
+ * @param emailsInGroupArr the list of emails in the google group
+ * @param emailsInDb an object where keys are the objects in the database and values are if the email is expired
+ * @return {Promise<{toAdd: [], toRemove: []}>}
+ */
+const getRequiredChanges = async (emailsInGroupArr, emailsInDb) => {
+  const actions = {};
+
+  // 1. Start by assuming we need to remove everyone because they're not in the database
+  for (const email of emailsInGroupArr) actions[email] = ACTIONS.remove;
+
+  // 2. Create a copy of the array to be able to look up if an email is in the google group
+  //    Note we use on object and not an array to achieve O(1) lookup time
+  const emailsInGoogleGroup = Object.assign({}, actions);
+
+  // 3. For each email in the database
+  for (const email in emailsInDb) {
+    if (!emailsInDb.hasOwnProperty(email)) continue;
+
+    const isInGoogleGroup = emailsInGoogleGroup.hasOwnProperty(email);
+    const isExpired = emailsInDb[email];
+
+    if (isExpired) {
+      // if expired and in group needs removing
+      if (isInGoogleGroup) actions[email] = ACTIONS.remove;
+      // if expired and not in group it's good
+      else actions[email] = ACTIONS.doNothing;
+    } else {
+      // if not expired and in google group it's good
+      if (isInGoogleGroup) actions[email] = ACTIONS.doNothing;
+      // if not expired but not in group needs adding
+      else actions[email] = ACTIONS.add;
+    }
+  }
+
+  return actions;
+};
+
+/**
+ * Adds an email to a google group and return if it was a success
+ * @param googleGroupClient
+ * @param email
+ * @return {Promise<boolean>}
+ */
 const addUserToGoogleGroup = async (googleGroupClient, email) => {
   try {
     await googleGroupClient.members.insert({
@@ -165,11 +193,17 @@ const addUserToGoogleGroup = async (googleGroupClient, email) => {
       requestBody: { email },
     });
   } catch (e) {
-    if (e.response && e.response.status === 404)
-      console.error(new Error(`Failed to add ${email} to the Google Group. 404 not found error.`))
-    else
-      throw e;
+    if (e.response && e.response.status === 404) {
+      console.error(
+        new Error(
+          `Failed to add ${email} to the Google Group. 404 not found error.`
+        )
+      );
+      return false;
+    } else throw e;
   }
+
+  return true;
 };
 
 const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
@@ -177,6 +211,36 @@ const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
     groupKey: Config.googleGroupEmail,
     memberKey: email,
   });
+};
+
+const applyChanges = async (googleGroupClient, actions, sendGridClient) => {
+  let [numAdded, numRemoved, numInvalid] = [0, 0, 0];
+
+  for (const [email, action] of Object.entries(actions)) {
+    if (action === ACTIONS.add) {
+      console.log(`Adding ${email} to group...`);
+      const success = await addUserToGoogleGroup(googleGroupClient, email);
+      if (success) {
+        sendEmail(email, sendGridClient, EMAILS.addedToGroup);
+        numAdded++;
+      } else numInvalid++;
+    } else if (action === ACTIONS.remove) {
+      console.log(`Removing ${email} from group...`);
+      await removeUserFromGoogleGroup(googleGroupClient, email);
+      sendEmail(email, sendGridClient, EMAILS.removedFromGroup);
+    }
+  }
+
+  return { numAdded, numRemoved, numInvalid };
+};
+
+const sendSummaryEmail = async (
+  { numAdded, numRemoved, numInvalid },
+  sendGridClient
+) => {
+  if (numInvalid + numAdded + numRemoved === 0) return;
+
+  console.log(numAdded, numRemoved, numInvalid);
 };
 
 // endregion
@@ -189,27 +253,31 @@ const main = async (_, res) => {
   await loadConfigFromGoogleSecretManager();
   const googleSheet = await getGoogleSheet();
   const googleGroupClient = await getGoogleGroupClient();
+  const sendGridClient = null; // TODO
 
   console.log("Getting mailing list members...");
 
   const membersFromGroup = await getMembersInGroup(googleGroupClient);
 
+  console.log("Get database emails...");
+
+  const membersInDb = await readDatabase(googleSheet);
+
   console.log("Calculating changes...");
 
-  const { toAdd, toRemove } = await getRequiredChanges(
-    googleSheet,
-    membersFromGroup
+  const actions = await getRequiredChanges(membersFromGroup, membersInDb);
+
+  console.log(`Applying changes...`);
+
+  const changeCount = await applyChanges(
+    googleGroupClient,
+    actions,
+    sendGridClient
   );
 
-  console.log(`Adding ${toAdd.length} missing members to group`);
+  console.log("Sending summary email...");
 
-  for (const email of toAdd)
-    await addUserToGoogleGroup(googleGroupClient, email);
-
-  console.log(`Removing ${toRemove.length} invalid members from group`);
-
-  for (const email of toRemove)
-    await removeUserFromGoogleGroup(googleGroupClient, email);
+  await sendSummaryEmail(changeCount, sendGridClient);
 
   console.log("Responding with success to request...");
 
