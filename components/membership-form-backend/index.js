@@ -11,7 +11,7 @@ const secretIds = {
     "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
 };
 
-const PAYMENT_METHOD = "PayPal & Website";
+const PAYMENT_METHOD = "Website";
 
 let Config = {
   googleServiceAccountPrivateKey: null,
@@ -236,6 +236,7 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
   const expiry = moment(creationTime).add(membershipInfo.months, "months");
   const data = {
     ...requestBody,
+    payment_amount: membershipInfo.amount,
     creation_time: creationTime.unix(),
     expiry: expiry.unix(),
     payment_method: PAYMENT_METHOD,
