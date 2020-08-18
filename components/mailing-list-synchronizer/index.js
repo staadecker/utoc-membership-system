@@ -1,6 +1,7 @@
 const { google } = require("googleapis");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
+const sendGridClient = require("@sendgrid/mail");
 
 // region Constants
 const secretIds = {
@@ -9,17 +10,21 @@ const secretIds = {
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
 };
 
+const WEBMASTER_EMAIL = "webmaster@utoc.ca";
+
 const Config = {
   googleServiceAccountPrivateKey: null,
   googleServiceAccountEmail: null,
   googleGroupEmail: null,
   adminEmail: null,
   databaseSpreadsheetId: null,
+  sendGridApiKey: null,
 };
 
 const EMAILS = {
   addedToGroup: "fsfsadf",
   removedFromGroup: "fsdfs",
+  summary: "d-5c9cacde67a449dfaa5fd6bb5fb7f501"
 };
 
 const ACTIONS = {
@@ -76,8 +81,15 @@ const errorHandler = (func) => async (...args) => {
   }
 };
 
-const sendEmail = (receiver, sendGridClient, templateId) => {
-  // TODO
+const sendEmail = async (receiver, templateId, dynamicTemplate) => {
+  const msg = {
+    to: receiver,
+    from: WEBMASTER_EMAIL,
+    template_id: templateId,
+    dynamic_template_data: dynamicTemplate,
+  };
+
+  await sendGridClient.send(msg);
 };
 
 // endregion
@@ -240,7 +252,11 @@ const sendSummaryEmail = async (
 ) => {
   if (numInvalid + numAdded + numRemoved === 0) return;
 
-  console.log(numAdded, numRemoved, numInvalid);
+  await sendEmail(WEBMASTER_EMAIL, EMAILS.summary, {
+    numAdded,
+    numRemoved,
+    numInvalid,
+  });
 };
 
 // endregion
@@ -253,7 +269,7 @@ const main = async (_, res) => {
   await loadConfigFromGoogleSecretManager();
   const googleSheet = await getGoogleSheet();
   const googleGroupClient = await getGoogleGroupClient();
-  const sendGridClient = null; // TODO
+  sendGridClient.setApiKey(Config.sendGridApiKey);
 
   console.log("Getting mailing list members...");
 
