@@ -10,7 +10,7 @@ const secretIds = {
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
 };
 
-const WEBMASTER_EMAIL = "webmaster@utoc.ca"
+const WEBMASTER_EMAIL = "webmaster@utoc.ca";
 const NO_REPLY_EMAIL = "no-reply@utoc.ca";
 
 const Config = {
@@ -141,6 +141,8 @@ const getMembersInGroup = async (googleGroupClient) => {
   const res = await googleGroupClient.members.list({
     groupKey: Config.googleGroupEmail,
   });
+
+  if (!res.data.members) return [];
 
   return res.data.members.map((m) => m.email);
 };
