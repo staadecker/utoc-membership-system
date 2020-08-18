@@ -22,9 +22,9 @@ const Config = {
 };
 
 const EMAILS = {
-  addedToGroup: "fsfsadf",
-  removedFromGroup: "fsdfs",
-  summary: "d-5c9cacde67a449dfaa5fd6bb5fb7f501"
+  addedToGroup: "d-2cb95d128a184a829aae39ec7c35a902",
+  removedFromGroup: "d-b23a2ee67d8f4f78bda907112024537a",
+  summary: "d-5c9cacde67a449dfaa5fd6bb5fb7f501",
 };
 
 const ACTIONS = {
@@ -81,12 +81,12 @@ const errorHandler = (func) => async (...args) => {
   }
 };
 
-const sendEmail = async (receiver, templateId, dynamicTemplate) => {
+const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
   const msg = {
     to: receiver,
     from: WEBMASTER_EMAIL,
     template_id: templateId,
-    dynamic_template_data: dynamicTemplate,
+    dynamic_template_data: dynamicTemplateData,
   };
 
   await sendGridClient.send(msg);
@@ -112,6 +112,7 @@ const getGoogleGroupClient = async () => {
   // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
   authClient.subject = Config.adminEmail;
 
+  // noinspection JSValidateTypes
   return google.admin({ version: "directory_v1", auth: authClient });
 };
 
@@ -225,7 +226,7 @@ const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
   });
 };
 
-const applyChanges = async (googleGroupClient, actions, sendGridClient) => {
+const applyChanges = async (googleGroupClient, actions) => {
   let [numAdded, numRemoved, numInvalid] = [0, 0, 0];
 
   for (const [email, action] of Object.entries(actions)) {
@@ -233,23 +234,20 @@ const applyChanges = async (googleGroupClient, actions, sendGridClient) => {
       console.log(`Adding ${email} to group...`);
       const success = await addUserToGoogleGroup(googleGroupClient, email);
       if (success) {
-        sendEmail(email, sendGridClient, EMAILS.addedToGroup);
+        await sendEmail(email, EMAILS.addedToGroup);
         numAdded++;
       } else numInvalid++;
     } else if (action === ACTIONS.remove) {
       console.log(`Removing ${email} from group...`);
       await removeUserFromGoogleGroup(googleGroupClient, email);
-      sendEmail(email, sendGridClient, EMAILS.removedFromGroup);
+      await sendEmail(email, EMAILS.removedFromGroup);
     }
   }
 
   return { numAdded, numRemoved, numInvalid };
 };
 
-const sendSummaryEmail = async (
-  { numAdded, numRemoved, numInvalid },
-  sendGridClient
-) => {
+const sendSummaryEmail = async ({ numAdded, numRemoved, numInvalid }) => {
   if (numInvalid + numAdded + numRemoved === 0) return;
 
   await sendEmail(WEBMASTER_EMAIL, EMAILS.summary, {
@@ -285,18 +283,15 @@ const main = async (_, res) => {
 
   console.log(`Applying changes...`);
 
-  const changeCount = await applyChanges(
-    googleGroupClient,
-    actions,
-    sendGridClient
-  );
+  const changeCount = await applyChanges(googleGroupClient, actions);
 
   console.log("Sending summary email...");
 
-  await sendSummaryEmail(changeCount, sendGridClient);
+  await sendSummaryEmail(changeCount);
 
   console.log("Responding with success to request...");
 
+  // noinspection JSUnresolvedFunction
   res.sendStatus(200);
 
   console.log("Done.");
