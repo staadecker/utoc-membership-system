@@ -10,7 +10,8 @@ const secretIds = {
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
 };
 
-const WEBMASTER_EMAIL = "webmaster@utoc.ca";
+const WEBMASTER_EMAIL = "webmaster@utoc.ca"
+const NO_REPLY_EMAIL = "no-reply@utoc.ca";
 
 const Config = {
   googleServiceAccountPrivateKey: null,
@@ -84,7 +85,7 @@ const errorHandler = (func) => async (...args) => {
 const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
   const msg = {
     to: receiver,
-    from: WEBMASTER_EMAIL,
+    from: NO_REPLY_EMAIL,
     template_id: templateId,
     dynamic_template_data: dynamicTemplateData,
   };
