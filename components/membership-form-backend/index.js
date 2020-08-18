@@ -19,7 +19,7 @@ let Config = {
   payPalClientSecret: null,
   payPalClientId: null,
   databaseSpreadsheetId: null,
-  successUrl: "https://utoc.ca/membership-success",
+  successUrl: "https://utoc.ca/welcome",
   useSandbox: null,
 };
 
