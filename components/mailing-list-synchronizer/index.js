@@ -14,8 +14,10 @@ const WEBMASTER_EMAIL = "webmaster@utoc.ca";
 const NO_REPLY_EMAIL = "no-reply@utoc.ca";
 
 const Config = {
-  googleServiceAccountPrivateKey: null,
-  googleServiceAccountEmail: null,
+  googleSheetsServiceAccountKey: null,
+  googleSheetsServiceAccountEmail: null,
+  directoryApiServiceAccountEmail: null,
+  directoryApiServiceAccountKey: null,
   googleGroupEmail: null,
   adminEmail: null,
   databaseSpreadsheetId: null,
@@ -100,16 +102,18 @@ const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
 const getGoogleGroupClient = async () => {
   // Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
   const SCOPES = ["https://www.googleapis.com/auth/admin.directory.group"];
-  const auth = new google.auth.GoogleAuth({ scopes: SCOPES });
-  const authClient = await auth.getClient();
-
-  // The following line is required since the Google Admin API needs to impersonate a real account
-  // https://github.com/googleapis/google-api-nodejs-client/issues/1699
-  // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
-  authClient.subject = Config.adminEmail;
+  const auth = new google.auth.JWT({
+    email: Config.directoryApiServiceAccountEmail,
+    key: Config.directoryApiServiceAccountKey,
+    scopes: SCOPES,
+    // The following line is required since the Google Admin API needs to impersonate a real account
+    // https://github.com/googleapis/google-api-nodejs-client/issues/1699
+    // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
+    subject: Config.adminEmail,
+  });
 
   // noinspection JSValidateTypes
-  return google.admin({ version: "directory_v1", auth: authClient });
+  return google.admin({ version: "directory_v1", auth });
 };
 
 /**
@@ -120,8 +124,8 @@ const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
 
   await doc.useServiceAccountAuth({
-    client_email: Config.googleServiceAccountEmail,
-    private_key: Config.googleServiceAccountPrivateKey,
+    client_email: Config.googleSheetsServiceAccountEmail,
+    private_key: Config.googleSheetsServiceAccountKey,
   });
 
   await doc.loadInfo();
@@ -257,7 +261,7 @@ const sendSummaryEmail = async ({ numAdded, numRemoved, numInvalid }) => {
 
 // endregion
 
-const main = async (_, res) => {
+const main = async (message, context) => {
   console.log("Received request.");
 
   console.log("Loading dependencies...");
@@ -286,11 +290,6 @@ const main = async (_, res) => {
   console.log("Sending summary email...");
 
   await sendSummaryEmail(changeCount);
-
-  console.log("Responding with success to request...");
-
-  // noinspection JSUnresolvedFunction
-  res.sendStatus(200);
 
   console.log("Done.");
 };
