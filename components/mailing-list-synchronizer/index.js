@@ -99,13 +99,8 @@ const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
 
 const getGoogleGroupClient = async () => {
   // Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
-  const auth = new google.auth.GoogleAuth({
-    // TODO adapt for cloud usage
-    keyFile:
-      "C:\\Users\\machs\\Projects\\utoc\\membership-system\\components\\mailing-list-synchronizer\\creds.json",
-    scopes: ["https://www.googleapis.com/auth/admin.directory.group"],
-  });
-
+  const SCOPES = ["https://www.googleapis.com/auth/admin.directory.group"];
+  const auth = new google.auth.GoogleAuth({ scopes: SCOPES });
   const authClient = await auth.getClient();
 
   // The following line is required since the Google Admin API needs to impersonate a real account
