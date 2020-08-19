@@ -11,5 +11,5 @@ steps:
       - --trigger-topic=mailing-list-synchronizer-trigger
 # The following lines should be used only when creating the function
 #      - --allow-unauthenticated # requires Security Admin permissions
-#      - --set-env-vars=ENVIRONMENT=test # should be set appropriately
+#      - --set-env-vars=ENVIRONMENT=development # should be set appropriately
 #      - --service-account=    # should be set appropriately
