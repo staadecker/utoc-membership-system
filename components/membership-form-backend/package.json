@@ -7,8 +7,8 @@
     "prettier": "prettier --write .",
     "test": "jest",
     "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-membership-system-test",
-    "deploy-test": "gcloud config set project utoc-membership-system-test && gcloud builds submit",
-    "deploy": "gcloud config set project utoc-membership-system && gcloud builds submit"
+    "deploy": "gcloud config set project utoc-membership-system-test && gcloud builds submit",
+    "deploy-prod": "gcloud config set project utoc-membership-system && gcloud builds submit"
   },
   "author": "Martin Staadecker",
   "license": "MIT",
