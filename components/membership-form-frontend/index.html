@@ -40,7 +40,8 @@
             type="text"
             class="field-element"
             required
-        /></label>
+          />
+        </label>
       </div>
       <div class="field">
         <label for="last_name">Last Name *</label>
@@ -51,13 +52,14 @@
             type="text"
             class="field-element"
             required
-        /></label>
+          />
+        </label>
       </div>
       <div class="field">
         <label for="school">School</label>
         <label class="caption">
-          <input id="school" name="school" class="field-element" type="text"
-        /></label>
+          <input id="school" name="school" class="field-element" type="text" />
+        </label>
       </div>
       <div class="field">
         <label for="program">
@@ -73,10 +75,9 @@
         </label>
       </div>
       <div class="field">
-        <label for="email"
-          >Email * (we will notify you of events and trips using this
-          email)</label
-        >
+        <label for="email">
+          Email * (we will notify you of events and trips using this email)
+        </label>
         <label class="caption">
           <input
             id="email"
@@ -84,20 +85,8 @@
             class="field-element"
             name="email"
             required
-        /></label>
-      </div>
-
-      <div class="field select">
-        <label for="membership_type" class="title"
-          >Choose your membership type:</label
-        >
-
-        <select name="membership_type" id="membership_type">
-          <option value="student">Student Membership $20.00 CAD</option>
-          <option value="regular">Regular Membership $30.00 CAD</option>
-          <option value="family">Family Membership $40.00 CAD</option>
-          <option value="summer">Summer Membership $10.00 CAD</option>
-        </select>
+          />
+        </label>
       </div>
 
       <br />
@@ -108,9 +97,26 @@
     </div>
 
     <div id="paymentTab" style="display: none;">
-      <h2>Payment</h2>
-
       <input type="hidden" id="orderID" name="orderID" />
+
+      <h2>Choose your membership type</h2>
+
+      <div class="field select">
+        <select name="membership_type" id="membership_type">
+          <option value="student">
+            Student Membership $20.00 CAD - 1 year
+          </option>
+          <option value="regular">
+            Regular Membership $30.00 CAD - 1 year
+          </option>
+          <option value="family">Family Membership $40.00 CAD - 1 year</option>
+          <option value="summer">
+            Summer Membership $10.00 CAD - 4 months
+          </option>
+        </select>
+      </div>
+
+      <h2>Payment</h2>
 
       <div id="paypal-button-container"></div>
     </div>
