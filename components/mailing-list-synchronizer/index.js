@@ -238,9 +238,6 @@ const getRequiredChanges = async (emailsInGroupArr, emailsInDb) => {
 
 /**
  * Adds an email to a google group and return if it was a success
- * @param googleGroupClient
- * @param email
- * @return {Promise<boolean>}
  */
 const addUserToGoogleGroup = async (googleGroupClient, email) => {
   try {
@@ -249,31 +246,32 @@ const addUserToGoogleGroup = async (googleGroupClient, email) => {
       requestBody: { email },
     });
   } catch (e) {
-    if (e.response && e.response.status === 404) {
-      console.error(
-        new Error(
-          `Failed to add ${email} to the Google Group. 404 not found error.`
-        )
-      );
-      return false;
-    } else throw e;
+    console.error(e);
+    return false;
   }
 
   return true;
 };
 
 const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
-  await googleGroupClient.members.delete({
-    groupKey: Config.googleGroupEmail,
-    memberKey: email,
-  });
+  try {
+    await googleGroupClient.members.delete({
+      groupKey: Config.googleGroupEmail,
+      memberKey: email,
+    });
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+
+  return true;
 };
 
 /**
  * Runs the remove & add to google group actions
  */
 const applyChanges = async (googleGroupClient, actions) => {
-  let [numAdded, numRemoved, numInvalid] = [0, 0, 0];
+  let [numAdded, numRemoved, numFailed] = [0, 0, 0];
 
   for (const [email, action] of Object.entries(actions)) {
     // If the email needs adding
@@ -282,7 +280,7 @@ const applyChanges = async (googleGroupClient, actions) => {
       const success = await addUserToGoogleGroup(googleGroupClient, email);
       // If fails skip sending success email
       if (!success) {
-        numInvalid++;
+        numFailed++;
         continue;
       }
 
@@ -293,24 +291,30 @@ const applyChanges = async (googleGroupClient, actions) => {
     // If the email needs removing
     else if (action === ACTIONS.remove) {
       console.log(`Removing ${email} from group...`);
-      await removeUserFromGoogleGroup(googleGroupClient, email);
+      const success = await removeUserFromGoogleGroup(googleGroupClient, email);
+
+      if (!success) {
+        numFailed++;
+      }
+
       await sendEmail(email, EMAILS.removedFromGroup);
+      numRemoved++;
     }
   }
 
-  return { numAdded, numRemoved, numInvalid };
+  return { numAdded, numRemoved, numFailed };
 };
 
 /**
  * Sends a summary email to the webmaster
  */
-const sendSummaryEmail = async ({ numAdded, numRemoved, numInvalid }) => {
+const sendSummaryEmail = async ({ numAdded, numRemoved, numFailed }) => {
   if (numInvalid + numAdded + numRemoved === 0) return; // Don't send if no changes.
 
   await sendEmail(WEBMASTER_EMAIL, EMAILS.summary, {
     numAdded,
     numRemoved,
-    numInvalid,
+    numFailed,
   });
 };
 
