@@ -13,6 +13,9 @@ const secretIds = {
 const WEBMASTER_EMAIL = "webmaster@utoc.ca";
 const NO_REPLY_EMAIL = "no-reply@utoc.ca";
 
+/**
+ * The values to these variables are loaded from Google Cloud Secret manager when the function is run
+ */
 const Config = {
   googleSheetsServiceAccountKey: null,
   googleSheetsServiceAccountEmail: null,
@@ -24,12 +27,18 @@ const Config = {
   sendGridApiKey: null,
 };
 
+/**
+ * Stores the template ids for the sendgrid emails
+ */
 const EMAILS = {
   addedToGroup: "d-2cb95d128a184a829aae39ec7c35a902",
   removedFromGroup: "d-b23a2ee67d8f4f78bda907112024537a",
   summary: "d-5c9cacde67a449dfaa5fd6bb5fb7f501",
 };
 
+/**
+ * Used to specify which action to take on each user (whether to add or remove from google group)
+ */
 const ACTIONS = {
   remove: 0,
   add: 1,
@@ -55,6 +64,10 @@ const getSecretId = () => {
   }
 };
 
+/**
+ * Replaces all the nulls in the Config variable with the value stored in the Google Secret manager
+ */
+// noinspection DuplicatedCode
 const loadConfigFromGoogleSecretManager = async () => {
   const secretId = getSecretId();
 
@@ -75,6 +88,9 @@ const loadConfigFromGoogleSecretManager = async () => {
   }
 };
 
+/**
+ * Useful to avoid unhandled promise rejection errors
+ */
 const errorHandler = (func) => async (...args) => {
   try {
     await func(...args);
@@ -84,6 +100,12 @@ const errorHandler = (func) => async (...args) => {
   }
 };
 
+/**
+ * Sends an email using sendgrid
+ * @param receiver email of the person to send the email to
+ * @param templateId the email template id
+ * @param dynamicTemplateData any data used to auto fill fields in a dynamic template
+ */
 const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
   const msg = {
     to: receiver,
@@ -99,9 +121,21 @@ const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
 
 // region Setup
 
+/**
+ * Returns an object that allows calls to the Directory API (used to add/remove members from the google group)
+ */
 const getGoogleGroupClient = async () => {
-  // Inspired from: https://github.com/googleapis/google-api-nodejs-client#application-default-credentials
-  const SCOPES = ["https://www.googleapis.com/auth/admin.directory.group"];
+  // Required scope to read, remove and add members to a Google Group
+  // https://developers.google.com/admin-sdk/directory/v1/reference/members
+  const SCOPES = [
+    "https://www.googleapis.com/auth/admin.directory.group.member",
+  ];
+
+  // We must use the JWT constructor and not GoogleAuth constructor
+  // since GoogleAuth will auto select the Compute constructor on GCP Cloud Functions
+  // which doesn't support (afaik) the subject parameter.
+  // JWT doesn't support Application default credentials, hence why we must load seperate credentials from GCP Secret Manager
+  // See my comment: https://github.com/googleapis/google-api-nodejs-client/issues/1884#issuecomment-664754769
   const auth = new google.auth.JWT({
     email: Config.directoryApiServiceAccountEmail,
     key: Config.directoryApiServiceAccountKey,
@@ -117,8 +151,8 @@ const getGoogleGroupClient = async () => {
 };
 
 /**
- * Returns the google sheet with the ID specified in the environment variable.
- * Authentication is performed through a service account key file for development ("creds.json")
+ * Returns the google sheet with specified ID
+ * Authentication is performed through credentials stored in GCP Secret manager
  */
 const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
@@ -130,37 +164,44 @@ const getGoogleSheet = async () => {
 
   await doc.loadInfo();
 
-  return doc.sheetsByIndex[1];
+  return doc.sheetsByIndex[1]; // Data is stored in second tab (index 1)
 };
 // endregion
 
 // region Operations
 
+/**
+ * @return {Promise<*[]|*>} A list of email addresses of everyone in the Google Group
+ */
 const getMembersInGroup = async (googleGroupClient) => {
   const res = await googleGroupClient.members.list({
     groupKey: Config.googleGroupEmail,
   });
 
-  if (!res.data.members) return [];
+  if (!res.data.members) return []; // If no members don't try map() and just return empty list
 
   return res.data.members.map((m) => m.email);
 };
 
+/**
+ * @return {Promise<{}>} A dictionary where the keys are all the emails and the value is a boolean indicating if it's expired
+ */
 const readDatabase = async (googleSheet) => {
   const rows = await googleSheet.getRows();
   const emailsInDb = {};
-  const time = Date.now() / 1000;
+  const curTime = Date.now() / 1000;
 
-  for (const { email, expiry } of rows) emailsInDb[email] = expiry < time;
+  for (const { email, expiry } of rows) emailsInDb[email] = expiry < curTime;
 
   return emailsInDb;
 };
 
 /**
  *
+ * Returns a dictionary where each key is an email and each value is an action (from the ACTIONS constant)
+ * indicating what action needs to be done for that email
  * @param emailsInGroupArr the list of emails in the google group
  * @param emailsInDb an object where keys are the objects in the database and values are if the email is expired
- * @return {Promise<{toAdd: [], toRemove: []}>}
  */
 const getRequiredChanges = async (emailsInGroupArr, emailsInDb) => {
   const actions = {};
@@ -168,15 +209,15 @@ const getRequiredChanges = async (emailsInGroupArr, emailsInDb) => {
   // 1. Start by assuming we need to remove everyone because they're not in the database
   for (const email of emailsInGroupArr) actions[email] = ACTIONS.remove;
 
-  // 2. Create a copy of the array to be able to look up if an email is in the google group
-  //    Note we use on object and not an array to achieve O(1) lookup time
-  const emailsInGoogleGroup = Object.assign({}, actions);
+  // 2. Create a copy of the actions object to be able to look up if an email is in the google group
+  //    Note we use on object and not the original array to achieve O(1) lookup time
+  const emailsInGroup = Object.assign({}, actions);
 
   // 3. For each email in the database
   for (const email in emailsInDb) {
     if (!emailsInDb.hasOwnProperty(email)) continue;
 
-    const isInGoogleGroup = emailsInGoogleGroup.hasOwnProperty(email);
+    const isInGoogleGroup = emailsInGroup.hasOwnProperty(email);
     const isExpired = emailsInDb[email];
 
     if (isExpired) {
@@ -228,18 +269,29 @@ const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
   });
 };
 
+/**
+ * Runs the remove & add to google group actions
+ */
 const applyChanges = async (googleGroupClient, actions) => {
   let [numAdded, numRemoved, numInvalid] = [0, 0, 0];
 
   for (const [email, action] of Object.entries(actions)) {
+    // If the email needs adding
     if (action === ACTIONS.add) {
       console.log(`Adding ${email} to group...`);
       const success = await addUserToGoogleGroup(googleGroupClient, email);
-      if (success) {
-        await sendEmail(email, EMAILS.addedToGroup);
-        numAdded++;
-      } else numInvalid++;
-    } else if (action === ACTIONS.remove) {
+      // If fails skip sending success email
+      if (!success) {
+        numInvalid++;
+        continue;
+      }
+
+      // Send success email
+      await sendEmail(email, EMAILS.addedToGroup);
+      numAdded++;
+    }
+    // If the email needs removing
+    else if (action === ACTIONS.remove) {
       console.log(`Removing ${email} from group...`);
       await removeUserFromGoogleGroup(googleGroupClient, email);
       await sendEmail(email, EMAILS.removedFromGroup);
@@ -249,8 +301,11 @@ const applyChanges = async (googleGroupClient, actions) => {
   return { numAdded, numRemoved, numInvalid };
 };
 
+/**
+ * Sends a summary email to the webmaster
+ */
 const sendSummaryEmail = async ({ numAdded, numRemoved, numInvalid }) => {
-  if (numInvalid + numAdded + numRemoved === 0) return;
+  if (numInvalid + numAdded + numRemoved === 0) return; // Don't send if no changes.
 
   await sendEmail(WEBMASTER_EMAIL, EMAILS.summary, {
     numAdded,
@@ -261,15 +316,15 @@ const sendSummaryEmail = async ({ numAdded, numRemoved, numInvalid }) => {
 
 // endregion
 
+// noinspection JSUnusedLocalSymbols
 const main = async (message, context) => {
   console.log("Received request.");
 
   console.log("Loading dependencies...");
-
-  await loadConfigFromGoogleSecretManager();
-  const googleSheet = await getGoogleSheet();
-  const googleGroupClient = await getGoogleGroupClient();
-  sendGridClient.setApiKey(Config.sendGridApiKey);
+  await loadConfigFromGoogleSecretManager(); // Populate Config object with secrets
+  const googleSheet = await getGoogleSheet(); // Get object to read Google Sheet
+  const googleGroupClient = await getGoogleGroupClient(); // Get object to make calls to the Directory API
+  sendGridClient.setApiKey(Config.sendGridApiKey); // Setup SendGrid
 
   console.log("Getting mailing list members...");
 
@@ -294,4 +349,5 @@ const main = async (message, context) => {
   console.log("Done.");
 };
 
+// Export the main function but wrapped with the error handler
 module.exports = { main: errorHandler(main) };
