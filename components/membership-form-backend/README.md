@@ -33,10 +33,28 @@ Any form submissions from the frontend will now trigger the script.
 
 ### Test the script
 
+#### General tests
 - [ ] Run `npm run test` to make sure the unit tests pass.
+- [ ] When errors occur, the entire request body is always printed (incl. asynchronous errors).
 
-- [ ] Make a form submission from the frontend and verify that the member's data gets properly added to the database.
-      Make sure to test submissions that have some empty fields.
+#### Adding to the database
+
+Form submissions:
+
+- [ ] A row is successfully added to the database.
+- [ ] A row is successfully added to the database even when optional fields are omitted.
+- [ ] The row contains all the inputted data.
+- [ ] The expiry date matches the selected membership type.
+- [ ] The creation timestamp is accurate.
+
+#### Google Group mailing list
+- [ ] Members are added to the Google Group mailing list.
+- [ ] If the member is already in the list, the error is caught properly and a success email is still sent.
+- [ ] If member can't be added to the list an error is thrown. (Note adding a member can fail if the member is using a secondary email)
+
+#### Email
+- [ ] Members receive an email when the script completes.
+- [ ] The email has no typos, spelling mistakes & is clear.
 
 ### Deploy the script for testing
 

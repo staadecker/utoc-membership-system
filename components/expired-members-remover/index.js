@@ -10,7 +10,6 @@ const secretIds = {
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
 };
 
-const WEBMASTER_EMAIL = "webmaster@utoc.ca";
 const NO_REPLY_EMAIL = "no-reply@utoc.ca";
 
 /**
@@ -25,24 +24,7 @@ const Config = {
   adminEmail: null,
   databaseSpreadsheetId: null,
   sendGridApiKey: null,
-};
-
-/**
- * Stores the template ids for the sendgrid emails
- */
-const EMAILS = {
-  addedToGroup: "d-2cb95d128a184a829aae39ec7c35a902",
-  removedFromGroup: "d-b23a2ee67d8f4f78bda907112024537a",
-  summary: "d-5c9cacde67a449dfaa5fd6bb5fb7f501",
-};
-
-/**
- * Used to specify which action to take on each user (whether to add or remove from google group)
- */
-const ACTIONS = {
-  remove: 0,
-  add: 1,
-  doNothing: 2,
+  removeEmailTemplateId: "d-b23a2ee67d8f4f78bda907112024537a",
 };
 
 // endregion
@@ -100,18 +82,12 @@ const errorHandler = (func) => async (...args) => {
   }
 };
 
-/**
- * Sends an email using sendgrid
- * @param receiver email of the person to send the email to
- * @param templateId the email template id
- * @param dynamicTemplateData any data used to auto fill fields in a dynamic template
- */
-const sendEmail = async (receiver, templateId, dynamicTemplateData) => {
+const sendRemovingEmail = async (email, name) => {
   const msg = {
-    to: receiver,
+    to: email,
     from: NO_REPLY_EMAIL,
-    template_id: templateId,
-    dynamic_template_data: dynamicTemplateData,
+    template_id: Config.removeEmailTemplateId,
+    dynamic_template_data: { email, name },
   };
 
   await sendGridClient.send(msg);
@@ -203,54 +179,10 @@ const readDatabase = async (googleSheet) => {
  * @param emailsInGroupArr the list of emails in the google group
  * @param emailsInDb an object where keys are the objects in the database and values are if the email is expired
  */
-const getRequiredChanges = async (emailsInGroupArr, emailsInDb) => {
-  const actions = {};
-
-  // 1. Start by assuming we need to remove everyone because they're not in the database
-  for (const email of emailsInGroupArr) actions[email] = ACTIONS.remove;
-
-  // 2. Create a copy of the actions object to be able to look up if an email is in the google group
-  //    Note we use on object and not the original array to achieve O(1) lookup time
-  const emailsInGroup = Object.assign({}, actions);
-
-  // 3. For each email in the database
-  for (const email in emailsInDb) {
-    if (!emailsInDb.hasOwnProperty(email)) continue;
-
-    const isInGoogleGroup = emailsInGroup.hasOwnProperty(email);
-    const isExpired = emailsInDb[email];
-
-    if (isExpired) {
-      // if expired and in group needs removing
-      if (isInGoogleGroup) actions[email] = ACTIONS.remove;
-      // if expired and not in group it's good
-      else actions[email] = ACTIONS.doNothing;
-    } else {
-      // if not expired and in google group it's good
-      if (isInGoogleGroup) actions[email] = ACTIONS.doNothing;
-      // if not expired but not in group needs adding
-      else actions[email] = ACTIONS.add;
-    }
-  }
-
-  return actions;
-};
-
-/**
- * Adds an email to a google group and return if it was a success
- */
-const addUserToGoogleGroup = async (googleGroupClient, email) => {
-  try {
-    await googleGroupClient.members.insert({
-      groupKey: Config.googleGroupEmail,
-      requestBody: { email },
-    });
-  } catch (e) {
-    console.error(e);
-    return false;
-  }
-
-  return true;
+const getExpiredMembers = async (emailsInGroupArr, emailsInDb) => {
+  return emailsInGroupArr.filter((email) => {
+    return emailsInDb[email];
+  });
 };
 
 const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
@@ -270,52 +202,20 @@ const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
 /**
  * Runs the remove & add to google group actions
  */
-const applyChanges = async (googleGroupClient, actions) => {
-  let [numAdded, numRemoved, numFailed] = [0, 0, 0];
+const removeExpired = async (googleGroupClient, expiredMembers) => {
+  let [numRemoved, numFailed] = [0, 0, 0];
 
-  for (const [email, action] of Object.entries(actions)) {
-    // If the email needs adding
-    if (action === ACTIONS.add) {
-      console.log(`Adding ${email} to group...`);
-      const success = await addUserToGoogleGroup(googleGroupClient, email);
-      // If fails skip sending success email
-      if (!success) {
-        numFailed++;
-        continue;
-      }
+  for (const expiredMember of expiredMembers) {
+    console.log(`Removing ${email} from group...`);
+    const success = await removeUserFromGoogleGroup(googleGroupClient, email);
 
-      // Send success email
-      await sendEmail(email, EMAILS.addedToGroup);
-      numAdded++;
+    if (!success) {
+      numFailed++;
     }
-    // If the email needs removing
-    else if (action === ACTIONS.remove) {
-      console.log(`Removing ${email} from group...`);
-      const success = await removeUserFromGoogleGroup(googleGroupClient, email);
 
-      if (!success) {
-        numFailed++;
-      }
-
-      await sendEmail(email, EMAILS.removedFromGroup);
-      numRemoved++;
-    }
+    await sendRemovingEmail(email, EMAILS.removedFromGroup);
+    numRemoved++;
   }
-
-  return { numAdded, numRemoved, numFailed };
-};
-
-/**
- * Sends a summary email to the webmaster
- */
-const sendSummaryEmail = async ({ numAdded, numRemoved, numFailed }) => {
-  if (numInvalid + numAdded + numRemoved === 0) return; // Don't send if no changes.
-
-  await sendEmail(WEBMASTER_EMAIL, EMAILS.summary, {
-    numAdded,
-    numRemoved,
-    numFailed,
-  });
 };
 
 // endregion
@@ -340,15 +240,11 @@ const main = async (message, context) => {
 
   console.log("Calculating changes...");
 
-  const actions = await getRequiredChanges(membersFromGroup, membersInDb);
+  const actions = await getExpiredMembers(membersFromGroup, membersInDb);
 
   console.log(`Applying changes...`);
 
-  const changeCount = await applyChanges(googleGroupClient, actions);
-
-  console.log("Sending summary email...");
-
-  await sendSummaryEmail(changeCount);
+  await removeExpired(googleGroupClient, actions);
 
   console.log("Done.");
 };

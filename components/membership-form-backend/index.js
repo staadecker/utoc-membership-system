@@ -2,27 +2,10 @@ const PayPalSDK = require("@paypal/checkout-server-sdk");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const moment = require("moment");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
+const sendGridClient = require("@sendgrid/mail");
+const { google } = require("googleapis");
 
-// region Constants
-const secretIds = {
-  production:
-    "projects/757988677903/secrets/membership-form-backend-config/versions/latest",
-  development:
-    "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
-};
-
-const PAYMENT_METHOD = "Website";
-
-let Config = {
-  googleServiceAccountPrivateKey: null,
-  googleServiceAccountEmail: null,
-  payPalClientSecret: null,
-  payPalClientId: null,
-  databaseSpreadsheetId: null,
-  successUrl: "https://utoc.ca/welcome",
-  useSandbox: null,
-};
-
+// region CONSTANTS
 const MEMBERSHIP_TYPES = {
   student: {
     amount: 20,
@@ -42,44 +25,45 @@ const MEMBERSHIP_TYPES = {
   },
 };
 
-const STATE = {
-  notCapturedNoDb:
-    "You have not been charged and you were not added to our database.",
-  capturingNoDb: "You have not been added to our database.",
-  capturedNoDb:
-    "Your payment has been processed but you hav not been added to our database.",
-  capturedWritingToDb: "Your payment has been processed.",
-  capturedInDb:
-    "Your payment has been processed and you have been added to our database.",
+const PAYMENT_METHOD = "Website";
+const WELCOME_URL = "https://utoc.ca/welcome";
+const SUCCESS_EMAIL_TEMPLATE_ID = "d-2c050487f52c45f389343a084b419198";
+const NO_REPLY_EMAIL = "noreply@utoc.ca";
+
+const GCP_SECRET_ID = {
+  production:
+    "projects/757988677903/secrets/membership-form-backend-config/versions/latest",
+  development:
+    "projects/620400297419/secrets/membership-form-backend-config/versions/latest",
+  test: null,
 };
 
-// flag that helps display an relevant error message to the user if errors occur.
-let currentState;
+// Values are loaded in from GCP Secret Manager
+const Config = {
+  gSheetsServiceAccountEmail: null,
+  gSheetsServiceAccountPrivateKey: null,
+  payPalClientSecret: null,
+  payPalClientId: null,
+  databaseSpreadsheetId: null,
+  useSandbox: null,
+  directoryApiServiceAccountEmail: null,
+  directoryApiServiceAccountKey: null,
+  adminEmail: null,
+  sendGridApiKey: null,
+  googleGroupEmail: null,
+};
 
 // endregion
 
-// region Helpers
-/**
- * Returns the secret id based on the environment
- */
-const getSecretId = () => {
-  switch (process.env.ENVIRONMENT) {
-    case "production":
-      return secretIds.production;
-    case "development":
-      return secretIds.development;
-    case "test":
-      return null;
-    default:
-      throw new ErrorWithStatus("Unknown environment", 500);
-  }
-};
-
+// region HELPER FUNCTIONS
 const loadConfigFromGoogleSecretManager = async () => {
-  const secretId = getSecretId();
+  const secretId = GCP_SECRET_ID[process.env.ENVIRONMENT];
+
+  // we explicitly check for undefined to ensure the environment wasn't simply forgotten
+  if (secretId === undefined) throw new Error("Unknown environment");
 
   // Exit if no secret ID (happens during unit tests)
-  if (!secretId) return;
+  if (secretId === null) return;
 
   // Read JSON secret from Google Cloud Secret Manager
   const client = new SecretManagerServiceClient();
@@ -89,45 +73,26 @@ const loadConfigFromGoogleSecretManager = async () => {
   // Use loaded JSON to populate Config object
   // Replace all values that are null
   for (const key in Config) {
-    if (Config[key] === null) {
-      Config[key] = loadedConfig[key];
-    }
+    if (loadedConfig[key] === undefined)
+      throw new Error(`Missing ${key} in GCP Secret Manager`);
+    Config[key] = loadedConfig[key];
   }
 };
 
 /**
- * A custom error type that supports a status code
+ * Catches errors from the Cloud function
  */
-class ErrorWithStatus extends Error {
-  constructor(message, status) {
-    super(message);
-    this.status = status;
-  }
-}
-
-/**
- * Returns a user friendly error message that is displayed if the function returns an error code.
- */
-const getUserFriendlyErrorMessage = (details) => {
-  const message = `Oops!\n${currentState} An error has occurred, please contact UTOC.\n\nTechnical details:\n${details}`;
-
-  return message.replace(/\n/g, "<br/>"); // Formats the newlines as HTML
-};
-
-/**
- * Catches errors from the Cloud function and returns a more user friendly message to the user.
- */
-const errorHandler = (func) => async (req, res) => {
+const errorHandler = (funcToRun) => async (req, res) => {
   try {
-    return await func(req, res);
+    return await funcToRun(req, res); // We need the await to ensure that the async commands are run within the try-catch
   } catch (e) {
     console.error(e);
-    res.status(e.status || 500).send(getUserFriendlyErrorMessage(e.message));
+    console.log(`Recovering request body: ${JSON.stringify(req.body)}`); // Ensures we don't loose any data.
   }
 };
 // endregion
 
-// region Setup
+// region SETUP
 /**
  *
  * Returns PayPal HTTP client instance with environment that has access
@@ -135,11 +100,14 @@ const errorHandler = (func) => async (req, res) => {
  * credentials have access.
  */
 const getPayPalClient = () => {
-  const args = [Config.payPalClientId, Config.payPalClientSecret];
+  const payPalConstructor = Config.useSandbox
+    ? PayPalSDK.core.SandboxEnvironment
+    : PayPalSDK.core.LiveEnvironment;
 
-  const environment = Config.useSandbox
-    ? new PayPalSDK.core.SandboxEnvironment(...args)
-    : new PayPalSDK.core.LiveEnvironment(...args);
+  const environment = new payPalConstructor(
+    Config.payPalClientId,
+    Config.payPalClientSecret
+  );
 
   return new PayPalSDK.core.PayPalHttpClient(environment);
 };
@@ -152,36 +120,62 @@ const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
 
   await doc.useServiceAccountAuth({
-    client_email: Config.googleServiceAccountEmail,
-    private_key: Config.googleServiceAccountPrivateKey,
+    client_email: Config.gSheetsServiceAccountEmail,
+    private_key: Config.gSheetsServiceAccountPrivateKey,
   });
 
   await doc.loadInfo();
 
   return doc.sheetsByIndex[1];
 };
+
+/**
+ * Returns an object that allows calls to the Directory API (used to add/remove members from the google group)
+ */
+const getGoogleGroupClient = async () => {
+  // Required scope to read, remove and add members to a Google Group
+  // https://developers.google.com/admin-sdk/directory/v1/reference/members
+  const SCOPES = [
+    "https://www.googleapis.com/auth/admin.directory.group.member",
+  ];
+
+  // We must use the JWT constructor and not GoogleAuth constructor
+  // since GoogleAuth will auto select the Compute constructor on GCP Cloud Functions
+  // which doesn't support (afaik) the subject parameter.
+  // JWT doesn't support Application default credentials, hence why we must load seperate credentials from GCP Secret Manager
+  // See my comment: https://github.com/googleapis/google-api-nodejs-client/issues/1884#issuecomment-664754769
+  const auth = new google.auth.JWT({
+    email: Config.directoryApiServiceAccountEmail,
+    key: Config.directoryApiServiceAccountKey,
+    scopes: SCOPES,
+    // The following line is required since the Google Admin API needs to impersonate a real account
+    // https://github.com/googleapis/google-api-nodejs-client/issues/1699
+    // https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
+    subject: Config.adminEmail,
+  });
+
+  // noinspection JSValidateTypes
+  return google.admin({ version: "directory_v1", auth });
+};
 // endregion
 
-// region Operations
+// region OPERATIONS
 /**
  * This function verifies that the request has the right format. If not, it throws.
  * Returns the membership type
  */
 const validateRequest = (req) => {
   if (req.method !== "POST")
-    throw new ErrorWithStatus("Invalid request. Not using POST method", 400);
+    throw new Error("Invalid request. Not using POST method");
 
   if (typeof req.body.orderID !== "string")
-    throw new ErrorWithStatus("No orderID contained in request.", 400);
+    throw new Error("No orderID contained in request.");
 
   if (
     typeof req.body.membership_type !== "string" ||
     !Object.keys(MEMBERSHIP_TYPES).includes(req.body.membership_type)
   )
-    throw new ErrorWithStatus(
-      "No valid membership_type contained in request.",
-      400
-    );
+    throw new Error("No valid membership_type contained in request.");
 
   return MEMBERSHIP_TYPES[req.body.membership_type];
 };
@@ -194,9 +188,8 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     order = await payPalClient.execute(getOrderRequest);
   } catch (e) {
     console.error(e);
-    throw new ErrorWithStatus(
-      "Failed to retrieve your PayPal Order given the provided ID.",
-      500
+    throw new Error(
+      "Failed to retrieve your PayPal Order given the provided ID."
     );
   }
 
@@ -209,10 +202,7 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     console.log(
       `Received payment (${authorizedPayment}$) doesn't match expected payment (${expectedPayment}$).`
     );
-    throw new ErrorWithStatus(
-      "Received payment doesn't match expected payment.",
-      400
-    );
+    throw new Error("Received payment doesn't match expected payment.");
   }
 };
 
@@ -222,12 +212,10 @@ const capturePayment = async (orderID, payPalClient) => {
   );
 
   try {
-    currentState = STATE.capturingNoDb;
     await payPalClient.execute(captureOrderRequest);
-    currentState = STATE.capturedNoDb;
   } catch (e) {
     console.error(e);
-    throw new ErrorWithStatus("Failed to accept (capture) your payment.", 500);
+    throw new Error("Failed to accept (capture) your payment.");
   }
 };
 
@@ -242,17 +230,45 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
     payment_method: PAYMENT_METHOD,
   };
 
-  currentState = STATE.capturedWritingToDb;
   const row = await sheet.addRow(data);
-  currentState = STATE.capturedInDb;
 
+  // Check to verify that all of 'data' was actually added (and hence returned in row)
   Object.keys(data).forEach((key) => {
     if (row[key] === undefined)
-      throw new ErrorWithStatus(
-        `Missing parameter '${key}' in Google Sheet database header.`,
-        500
+      throw new Error(
+        `Missing parameter '${key}' in Google Sheet database header.`
       );
   });
+};
+
+/**
+ * Adds an email to a google group and return if it was a success
+ */
+const addUserToGoogleGroup = async (googleGroupClient, email) => {
+  try {
+    await googleGroupClient.members.insert({
+      groupKey: Config.googleGroupEmail,
+      requestBody: { email },
+    });
+  } catch (e) {
+    if (e.response && e.response.status === 409) {
+      console.log("Member already exists in google group.");
+      return;
+    }
+    console.error(e);
+    throw new Error("Failed to add member to group");
+  }
+};
+
+const sendSuccessEmail = async (email, name) => {
+  const msg = {
+    to: email,
+    from: NO_REPLY_EMAIL,
+    template_id: SUCCESS_EMAIL_TEMPLATE_ID,
+    dynamic_template_data: { name },
+  };
+
+  await sendGridClient.send(msg);
 };
 
 // endregion
@@ -260,37 +276,41 @@ const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
 const main = async (req, res) => {
   console.log("Received request.");
 
-  currentState = STATE.notCapturedNoDb; // Initialize global variable
+  // Always redirect to welcome page first
+  console.log("Redirecting to welcome page...");
+  res.redirect(WELCOME_URL);
 
   console.log("Validating request...");
-
   const membershipType = validateRequest(req);
+  const { orderID, email, firstName } = req.body;
 
-  console.log("Loading dependencies...");
-
+  console.log("Loading secrets from Secret Manager...");
   await loadConfigFromGoogleSecretManager();
+
+  console.log(
+    "Initializing clients for Google Group API, PayPal API, Google Sheets API & SendGrid API"
+  );
   const payPalClient = getPayPalClient();
   const googleSheet = await getGoogleSheet();
+  const googleGroupClient = await getGoogleGroupClient();
+  sendGridClient.setApiKey(Config.sendGridApiKey); // Setup SendGrid
 
   console.log("Validating payment...");
-
-  await validatePayment(req.body.orderID, payPalClient, membershipType);
+  await validatePayment(orderID, payPalClient, membershipType);
 
   console.log("Capturing (accepting) payment...");
-
-  await capturePayment(req.body.orderID, payPalClient);
+  await capturePayment(orderID, payPalClient);
 
   console.log("Writing new member to database...");
-
   await writeAccountToDatabase(req.body, membershipType, googleSheet);
 
-  console.log("Redirecting to success page...");
+  console.log("Adding member to Google Group...");
+  await addUserToGoogleGroup(googleGroupClient, email);
 
-  res.redirect(Config.successUrl);
+  console.log("Sending success email...");
+  await sendSuccessEmail(email, firstName);
 
   console.log("Done.");
 };
 
-module.exports = {
-  main: errorHandler(main),
-};
+module.exports = { main: errorHandler(main) };

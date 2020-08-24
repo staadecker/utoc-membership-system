@@ -21,8 +21,6 @@ const validBody = {
   school: "U of T",
   program_and_college: "EngSci :)",
   email: "somerandom-email-jljdsf@mail.utoronto.ca",
-  found_utoc: '"you talked" to me',
-  interested_in_family_events: "no",
   membership_type: "student",
   orderID: "0NY62877GC1270645",
 };

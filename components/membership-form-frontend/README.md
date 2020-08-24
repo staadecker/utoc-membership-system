@@ -47,9 +47,11 @@ Here are the steps to run the form on your computer.
 
 While completing the form, check the following:
 
-- [ ] Form styling renders and is aesthetically pleasing (only when testing on Squarespace).
-- [ ] Form will not allow submission without the required fields or with an invalid email.
-- [ ] Spinner displays while the form submits.
+- [ ] All form questions render and are aesthetically pleasing (only on Squarespace).
+- [ ] No spelling mistakes.
+- [ ] Can't submit without the required fields.
+- [ ] Can submit without the optional fields.
+- [ ] PayPal payment window reflects the selected amount.
 
 Right before paying, open the network tab in your browser developer tools.
 Complete the payment and then check the following in the POST request to the backend.

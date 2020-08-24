@@ -1,24 +1,19 @@
 <script>
-  /* DECLARE CONSTANTS */
-  const environment = "dev";
+  /** CONSTANTS **/
+  const ENVIRONMENT = "dev"; // Switch to "prod" or "test" accordingly
 
-  const clientId =
-    environment === "prod"
+  const PAYPAL_CLIENT_ID =
+    ENVIRONMENT === "prod"
       ? "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM"
       : "AYog27JQO-o3LLVZUXKmig1RhRRRc_GjOCASqE1m-bqDxWjxRcC3-TOzFle2UFWn7Vm5LbBOBc4b1oRf";
 
-  function getBackendEndpoint() {
-    switch (environment) {
-      case "prod":
-        return "https://northamerica-northeast1-utoc-membership-system.cloudfunctions.net/membership-form-backend";
-      case "dev":
-        return "http://localhost:8080";
-      case "test":
-        return "https://northamerica-northeast1-utoc-membership-system-test.cloudfunctions.net/membership-form-backend";
-    }
-  }
-
-  const backendEndpoint = getBackendEndpoint();
+  const BACKEND_ENDPOINTS = {
+    prod:
+      "https://northamerica-northeast1-utoc-membership-system.cloudfunctions.net/membership-form-backend",
+    dev: "http://localhost:8080",
+    test:
+      "https://northamerica-northeast1-utoc-membership-system-test.cloudfunctions.net/membership-form-backend",
+  };
 
   const PRICING = {
     student: 20,
@@ -91,7 +86,11 @@
 
       <br />
 
-      <button type="button" class="sqs-editable-button" onclick="toPayment()">
+      <button
+        type="button"
+        class="sqs-editable-button"
+        onclick="toPaymentTab()"
+      >
         Next
       </button>
     </div>
@@ -123,42 +122,12 @@
   </form>
 </div>
 
-<div id="loader-container">
-  <h3>Please wait. This may take a minute...</h3>
-  <div id="loader"></div>
-</div>
-
-<style>
-  #loader-container {
-    display: none;
-  }
-
-  /* https://www.w3schools.com/howto/howto_css_loader.asp */
-  #loader {
-    border: 16px solid #f3f3f3; /* Light grey */
-    border-top: 16px solid #3498db; /* Blue */
-    border-radius: 50%;
-    width: 120px;
-    height: 120px;
-    animation: spin 2s linear infinite;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-</style>
-
 <script>
   /* Import the PayPal SDK */
   const scriptTag = document.createElement("script");
   scriptTag.setAttribute(
     "src",
-    "https://www.paypal.com/sdk/js?currency=CAD&client-id=" + clientId
+    "https://www.paypal.com/sdk/js?currency=CAD&client-id=" + PAYPAL_CLIENT_ID
   );
   scriptTag.setAttribute("data-sdk-integration-source", "button-factory");
 
@@ -167,9 +136,9 @@
 
 <script>
   /* Define what happens when they press next */
-  function toPayment() {
+  function toPaymentTab() {
     const membershipForm = document.getElementById("membership_form");
-    membershipForm.action = backendEndpoint;
+    membershipForm.action = BACKEND_ENDPOINTS[ENVIRONMENT];
 
     if (!membershipForm.checkValidity()) return;
     // Hide the current tab:
@@ -195,8 +164,6 @@
           });
         },
         onApprove: function (data) {
-          document.getElementById("paymentTab").style.display = "none";
-          document.getElementById("loader-container").style.display = "block";
           document.getElementById("orderID").value = data.orderID;
           membershipForm.submit();
         },
