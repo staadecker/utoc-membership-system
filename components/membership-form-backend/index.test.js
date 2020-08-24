@@ -25,14 +25,6 @@ const validBody = {
   orderID: "0NY62877GC1270645",
 };
 
-const notChargedErrorMessage = expect.stringContaining(
-  "You have not been charged"
-);
-
-const wasChargedErrorMessage = expect.stringContaining(
-  "Your payment has been processed"
-);
-
 /**
  * This replaces the entire paypal library with our own functions
  */
@@ -111,13 +103,46 @@ jest.mock("google-spreadsheet", () => {
   };
 });
 
+jest.mock("@sendgrid/mail", () => {
+  const mocks = {
+    sendEmail: jest.fn(),
+    setApiKey: jest.fn(),
+  };
+
+  return {
+    mocks,
+    send: mocks.sendEmail,
+    setApiKey: mocks.setApiKey,
+  };
+});
+
+jest.mock("@google-cloud/secret-manager", () => {
+  const mocks = {
+    getSecretJson: jest.fn(),
+  };
+
+  const versions = [
+    { payload: { data: JSON.stringify(mocks.getSecretJson()) } },
+  ];
+
+  const client = { accessSecretVersion: () => versions };
+
+  return {
+    SecretManagerServiceClient: class SecretManagerServiceClient {
+      constructor() {
+        return client;
+      }
+    },
+  };
+});
+
 // TODO test expiry values
 describe("all tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("should succeed to capture order and write to db with valid request", async () => {
+  test("should complete all steps on valid request", async () => {
     await request(app)
       .post("/")
       .send(validBody)
