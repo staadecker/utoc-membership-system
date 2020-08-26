@@ -313,4 +313,4 @@ const main = async (req, res) => {
   console.log("Done.");
 };
 
-module.exports = { main: errorHandler(main) };
+module.exports = { main: errorHandler(main), Constants: { WELCOME_URL } };

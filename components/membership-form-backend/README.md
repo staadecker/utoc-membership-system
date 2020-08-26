@@ -9,6 +9,10 @@ b) accept (capture) the PayPal order
 
 c) write the member's information to a Google Spreadsheet.
 
+d) add the member to the Google Group (if not already added)
+
+e) send the member an email
+
 The script is run within the [Google Cloud Function](https://cloud.google.com/functions/docs/concepts/overview) service.
 
 ## Development
@@ -35,11 +39,8 @@ Any form submissions from the frontend will now trigger the script.
 
 #### General tests
 - [ ] Run `npm run test` to make sure the unit tests pass.
-- [ ] When errors occur, the entire request body is always printed (incl. asynchronous errors).
 
 #### Adding to the database
-
-Form submissions:
 
 - [ ] A row is successfully added to the database.
 - [ ] A row is successfully added to the database even when optional fields are omitted.
@@ -55,6 +56,11 @@ Form submissions:
 #### Email
 - [ ] Members receive an email when the script completes.
 - [ ] The email has no typos, spelling mistakes & is clear.
+
+#### Redirect
+
+- [ ] Redirects to the correct welcome URL.
+- [ ] Redirect is fast.
 
 ### Deploy the script for testing
 

@@ -1,19 +1,12 @@
 process.env.ENVIRONMENT = "test";
 
 const request = require("supertest");
-const { main } = require("./index");
+const { main, Constants } = require("./index");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: paypalMocks } = require("@paypal/checkout-server-sdk");
+const { mocks: googleApiMock } = require("googleapis");
+const { mocks: sendGridMock } = require("@sendgrid/mail");
 const moment = require("moment");
-// This is not ideal however it allows us to get the express app to run tests.
-// Essentially we are getting the same express app as what is run on Google's servers,
-// See the source code https://github.com/GoogleCloudPlatform/functions-framework-nodejs/blob/master/src/invoker.ts for where I found the two functions.
-const {
-  SignatureType,
-  getServer,
-} = require("@google-cloud/functions-framework/build/src/invoker");
-
-const app = getServer(main, SignatureType.HTTP);
 
 const validBody = {
   first_name: "Martin",
@@ -24,6 +17,17 @@ const validBody = {
   membership_type: "student",
   orderID: "0NY62877GC1270645",
 };
+
+const validRequest = {
+  body: validBody,
+  method: "POST",
+};
+
+const validResponse = {
+  redirect: jest.fn(),
+};
+
+const last = (array) => array[array.length - 1];
 
 /**
  * This replaces the entire paypal library with our own functions
@@ -57,10 +61,12 @@ jest.mock("@paypal/checkout-server-sdk", () => {
           if (request.name === "getOrderRequest")
             return {
               result: {
-                purchase_units: [{ amount: { value: mocks.getOrderAmount() } }],
+                purchase_units: [
+                  { amount: { value: mocks.getOrderAmount(request) } },
+                ],
               },
             };
-          else return mocks.captureRequest();
+          else return mocks.captureRequest(request);
         }
       },
     },
@@ -71,7 +77,7 @@ jest.mock("@paypal/checkout-server-sdk", () => {
           this.name = "getOrderRequest";
         }
       },
-      OrdersCaptureRequest: class OrdersCaputreRequest {
+      OrdersCaptureRequest: class OrdersCaptureRequest {
         // noinspection JSUnusedGlobalSymbols,JSUnusedLocalSymbols
         constructor(orderID) {
           this.name = "captureOrderRequest";
@@ -118,7 +124,19 @@ jest.mock("@sendgrid/mail", () => {
 
 jest.mock("@google-cloud/secret-manager", () => {
   const mocks = {
-    getSecretJson: jest.fn(),
+    getSecretJson: jest.fn(() => ({
+      gSheetsServiceAccountEmail: null,
+      gSheetsServiceAccountPrivateKey: null,
+      payPalClientSecret: null,
+      payPalClientId: null,
+      databaseSpreadsheetId: null,
+      useSandbox: true,
+      directoryApiServiceAccountEmail: null,
+      directoryApiServiceAccountKey: null,
+      adminEmail: null,
+      sendGridApiKey: null,
+      googleGroupEmail: null,
+    })),
   };
 
   const versions = [
@@ -128,10 +146,36 @@ jest.mock("@google-cloud/secret-manager", () => {
   const client = { accessSecretVersion: () => versions };
 
   return {
+    mocks,
     SecretManagerServiceClient: class SecretManagerServiceClient {
       constructor() {
         return client;
       }
+    },
+  };
+});
+
+jest.mock("googleapis", () => {
+  const mocks = {
+    createAuthClient: jest.fn(),
+    insertMemberToGroup: jest.fn(),
+  };
+
+  return {
+    mocks,
+    google: {
+      auth: {
+        JWT: class JWT {
+          constructor(options) {
+            return mocks.createAuthClient(options);
+          }
+        },
+      },
+      admin: (options) => ({
+        members: {
+          insert: mocks.insertMemberToGroup,
+        },
+      }),
     },
   };
 });
@@ -143,54 +187,62 @@ describe("all tests", () => {
   });
 
   test("should complete all steps on valid request", async () => {
-    await request(app)
-      .post("/")
-      .send(validBody)
-      .expect(302)
-      .expect("Location", "https://utoc.ca/membership-success");
+    await main(validRequest, validResponse);
 
+    // Redirect to welcome url
+    expect(validResponse.redirect).toHaveBeenCalledTimes(1);
+    expect(validResponse.redirect).toHaveBeenCalledWith(Constants.WELCOME_URL);
+
+    // Captures paypal payment
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
-    expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
 
+    // Adds the data to the database
+    expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
     expect(dataAdded).toMatchObject(validBody);
     expect(dataAdded.creation_time).toBeCloseTo(moment().unix(), 2);
     expect(dataAdded.expiry).toBeGreaterThan(moment().unix());
+
+    // Add the user to the google group
+    expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
+    const insertMemberOptions =
+      googleApiMock.insertMemberToGroup.mock.calls[0][0];
+    expect(insertMemberOptions.requestBody.email).toStrictEqual(
+      validBody.email
+    );
+
+    // Send the success email
+    expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
+    const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
+    expect(sendEmailOptions.to).toStrictEqual(validBody.email);
   });
 
-  test("should fail with 400 if request is not a POST request or if missing orderId / membership_type", async () => {
-    await request(app).get("/").send(validBody).expect(400);
-    await request(app).put("/").send(validBody).expect(400);
-    await request(app).delete("/").send(validBody).expect(400);
+  test("should fail if request is not a POST request or if missing orderId / membership_type", async () => {
+    const invalidRequests = [
+      { ...validRequest, method: "GET" },
+      { ...validRequest, body: {} },
+      { ...validRequest, body: { ...validBody, membership_type: undefined } },
+      { ...validRequest, body: { ...validBody, orderID: undefined } },
+    ];
 
-    let res = await request(app)
-      .post("/")
-      .send({ ...validBody, membership_type: undefined })
-      .expect(400);
-    expect(res.text).toEqual(notChargedErrorMessage);
-    res = await request(app)
-      .post("/")
-      .send({ ...validBody, orderID: undefined })
-      .expect(400);
-    expect(res.text).toEqual(notChargedErrorMessage);
+    // Run the function for each one
+    await Promise.all(invalidRequests.map((req) => main(req, validResponse)));
 
-    expect(paypalMocks.getOrderAmount).not.toHaveBeenCalled();
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
-    expect(paypalMocks.buildClient).not.toHaveBeenCalled();
-
-    expect(sheetsMocks.createDocConnection).not.toHaveBeenCalled();
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+    expect(googleApiMock.insertMemberToGroup).not.toHaveBeenCalled();
+    expect(sendGridMock.sendEmail).not.toHaveBeenCalled();
   });
 
   test("should fail without capturing order if order amount is different than membership_type", async () => {
     paypalMocks.getOrderAmount.mockReturnValueOnce(13.3333);
 
-    const res = await request(app).post("/").send(validBody).expect(400);
-    expect(res.text).toEqual(notChargedErrorMessage);
+    await main(validRequest, validResponse);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+    expect(sendGridMock.sendEmail).not.toHaveBeenCalled();
   });
 
   test("should fail without capturing order if PayPal validation request fails", async () => {
@@ -198,12 +250,12 @@ describe("all tests", () => {
       throw new Error();
     });
 
-    const res = await request(app).post("/").send(validBody).expect(500);
-    expect(res.text).toEqual(notChargedErrorMessage);
+    await main(validRequest, validResponse);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+    expect(sendGridMock.sendEmail).not.toHaveBeenCalled();
   });
 
   test("should not write user to database if capturing payment fails", async () => {
@@ -211,11 +263,12 @@ describe("all tests", () => {
       throw new Error();
     });
 
-    await request(app).post("/").send(validBody).expect(500);
+    await main(validRequest, validResponse);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
+    expect(sendGridMock.sendEmail).not.toHaveBeenCalled();
   });
 
   test("should return an error if some fields are dropped when writing to database", async () => {
@@ -224,11 +277,36 @@ describe("all tests", () => {
       firstName: undefined, // override name to not exist in return value
     });
 
-    const res = await request(app).post("/").send(validBody).expect(500);
-    expect(res.text).toStrictEqual(wasChargedErrorMessage);
+    await main(validRequest, validResponse);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
     expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
+  });
+
+  test("should success if email is already in google group", async () => {
+    class ConflictError {
+      constructor() {
+        this.response = {
+          status: 409,
+        };
+      }
+    }
+    googleApiMock.insertMemberToGroup.mockReturnValueOnce(new ConflictError());
+
+    await main(validRequest, validResponse);
+
+    expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
+    expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  test("should display body when error occur", async () => {
+    paypalMocks.getOrderAmount.mockReturnValueOnce(new Error());
+    console.error = jest.fn();
+    console.log = jest.fn();
+
+    await main(validRequest, validResponse);
+
+    expect(last(console.log.mock.calls)[0]).toContain(JSON.stringify(validRequest.body));
   });
 });
