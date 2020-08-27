@@ -4,32 +4,40 @@ These steps describe how to get the code up and running and integrated with Goog
 I recommend you read the [System Architecture documentation](./System%20architecture.md) first to understand what you're doing.
 These steps are intended to walk an experienced user through the process (or future me) and not to teach you the process.
 
+## Setting the membership form (backend & frontend)
+
 1. Log in to Google Cloud and make a new project.
 
 2. Enable the Cloud Build API, the Secret Manager API, the Google Sheets API and the Admin SDK.
 
 3. Create a Google Sheets with the same column headers as in the testing Google Sheets. Make note of the sheet id (in the URL).
 
-4. Create a service account to access the google sheet and make note of the email.
+4. Create a service account to access the Google sheet,
+a service account to access the directory API, and a service account to run the membership-form-backend cloud function.
 
-5. Give the service account editor permissions to the Google Sheets.
+5. Give the Google Sheets service account editor permissions to the Google Sheets.
 
-6. Create a new JSON key for the service account. Make note of the value for `private_key` in the key file and **delete the key file**.
+6. Create a new JSON key for the directory API and Google sheets service account. Make note of the email and private_key in the key file and then **delete the key file**.
 
-7. Create another service account to run the membership-form-backend. Make note of the email.
+7. Create a PayPal Live App (in the PayPal developer console). Make note of the Client ID and Secret.
 
-8. Create a PayPal Live App (in the PayPal developer console). Make note of the Client ID and Secret.
+8. Create a SendGrid API Key.
 
 9. Create a secret in the secret manager with the following JSON content:
 
-```
+```json
 {
-  "googleServiceAccountEmail": <the email of the service account from step 4>,
-  "googleServiceAccountPrivateKey": <the private_key of the service account from step 6>,
-  "payPalClientSecret": <the PayPal secret from step 8>,
-  "payPalClientId": <the PayPal client id from step 8>,
-  "databaseSpreadsheetId": <the database spreadsheet id from step 3>,
-  "useSandbox": false
+  "gSheetsServiceAccountEmail": "<from step 6>",
+  "gSheetsServiceAccountPrivateKey": "<from step 6>",
+  "payPalClientSecret": "<from step 7>",
+  "payPalClientId": "<from step 7>",
+  "databaseSpreadsheetId": "<from step 3>",
+  "useSandbox": "<if paypal should be in sandbox mode, true or false>",
+  "directoryApiServiceAccountEmail": "<from step 6>",
+  "directoryApiServiceAccountKey": "<from step 6>",
+  "adminEmail": "<email of the utoc admin account>",
+  "sendGridApiKey": "<from step 8>",
+  "googleGroupEmail": "<email of the mailing group>"
 }
 ```
 
