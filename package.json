@@ -1,0 +1,18 @@
+{
+  "name": "membership-system",
+  "version": "1.0.0",
+  "dependencies": {
+    "lerna": "^3.22.1"
+  },
+  "private": true,
+  "scripts": {
+    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-membership-system-test"
+  },
+  "workspaces": [
+    "components/*"
+  ],
+  "devDependencies": {
+    "@google-cloud/functions-framework": "^1.7.1",
+    "prettier": "^2.1.1"
+  }
+}

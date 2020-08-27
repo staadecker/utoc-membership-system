@@ -4,21 +4,16 @@
   "private": true,
   "scripts": {
     "start": "cross-env ENVIRONMENT=development functions-framework --target=main",
-    "prettier": "prettier --write .",
     "test": "jest",
-    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-membership-system-test",
     "deploy": "gcloud config set project utoc-membership-system-test && gcloud builds submit",
     "deploy-prod": "gcloud config set project utoc-membership-system && gcloud builds submit"
   },
   "author": "Martin Staadecker",
   "license": "MIT",
   "devDependencies": {
-    "@google-cloud/functions-framework": "^1.6.0",
     "cross-env": "^7.0.2",
-    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "jest": "^26.1.0",
-    "prettier": "^2.0.5",
     "supertest": "^4.0.2"
   },
   "dependencies": {

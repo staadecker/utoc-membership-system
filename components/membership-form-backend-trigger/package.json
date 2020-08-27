@@ -2,15 +2,10 @@
   "name": "membership-form-backend",
   "version": "1.0.0",
   "scripts": {
-    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-membership-system-test",
     "deploy": "gcloud config set project utoc-membership-system-test && gcloud builds submit",
     "start": "functions-framework --target=main"
   },
   "dependencies": {
     "@google-cloud/pubsub": "^2.5.0"
-  },
-  "devDependencies": {
-    "@google-cloud/functions-framework": "^1.7.1",
-    "prettier": "^2.1.1"
   }
 }

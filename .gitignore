@@ -10,3 +10,4 @@
 creds.json
 node_modules
 coverage
+yarn-error.log
