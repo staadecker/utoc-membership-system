@@ -1,6 +1,7 @@
 {
   "name": "membership-system",
   "version": "1.0.0",
+  "license": "MIT",
   "dependencies": {
     "lerna": "^3.22.1"
   },
