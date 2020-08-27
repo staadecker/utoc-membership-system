@@ -1,7 +1,7 @@
 # membership-form-backend
 
-This component is a script that runs whenever it receives an HTTP request from the [frontend membership sign up form](../membership-form-frontend).
-The script will read the member's information and the PayPal OrderID from the HTTP request and will:
+This component is a [Google Cloud Function](https://cloud.google.com/functions/docs/concepts/overview) that runs whenever it receives a [Pub/Sub](https://cloud.google.com/pubsub/docs/overview) message from `membership-form-backend-trigger` (due to a frontend form submission).
+The function will read the member's information & PayPal OrderID from the message and will:
 
 a) verify that the payment amount matches the OrderID
 
@@ -19,20 +19,9 @@ The script is run within the [Google Cloud Function](https://cloud.google.com/fu
 
 In this section, I discuss the different steps involved in developing the script.
 
-### Setup
+### Running locally
 
-1. [Install NodeJS 10](https://nodejs.org/en/download/).
-
-2. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs).
-
-3. In this directory, run `npm install` in terminal. This will install the script's dependencies.
-
-4. Run `npm run auth` and login with your `@utoc` account. This will allow you to access the staging environment.
-You will need to run this command every 8h to re-authenticate.
-
-### Run the script on your computer
-
-In this directory, run `npm start`. This prepare the script on your local computer.
+Run `yarn workspace membership-form-backend start`. This prepares the script on your local computer.
 Any form submissions from the frontend will now trigger the script.
 
 ### Test the script

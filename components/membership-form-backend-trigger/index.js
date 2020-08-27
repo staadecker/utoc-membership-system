@@ -8,7 +8,7 @@ module.exports.main = async (req, res) => {
   try {
     console.log("Received request.");
 
-    console.log("Publishing to request body to Pub/Sub...");
+    console.log("Publishing request body to Pub/Sub...");
     await pubSubClient
       .topic(TOPIC_NAME)
       .publish(Buffer.from(JSON.stringify(req.body), "utf8"));
