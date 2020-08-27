@@ -18,24 +18,27 @@ When the payment is complete, the member is added to the Google Sheets database.
 
 ## Software Components
 
-This section presents the 3 different components of the system. Visit each component's README for component-specific details.
+This section presents the 4 different components of the system. Visit each component's README for component-specific details.
 
 ### [`membership-form-frontend`](./components/membership-form-frontend)
 
 The first component is a membership sign up form.
 This form is embedded on our squarespace website and collects both membership information as well as a payment through PayPal buttons.
 
+### [`membership-form-backend-trigger`](./components/membership-form-backend-trigger)
+
+The second component is what receives requests from the membership sign up form.
+It will read the request, send it on to `membership-form-backend` and then redirect the user to our welcome page.
+
 ### [`membership-form-backend`](./components/membership-form-backend)
 
-The second component is a Google Cloud function that receives the frontend form submission.
-The function verifies that the PayPal transaction is valid and adds the member to our Google Sheets database.
+The third component receives the membership sign up form request via `membership-form-backend-trigger`.
+The function verifies that the PayPal transaction is valid, adds the member to our Google Sheets database & Google Group and sends the member a welcome email.
 
-### [`mailing-list-synchronizer`](./components/mailing-list-synchronizer)
+### [`expired-members-remover`](./components/expired-members-remover)
 
-The third component, is a cloud function that runs daily.
-This function syncs a Google Group (which we use as a mailing list) with the Google Sheets database.
-Expired memberships are removed from the Google Group while new memberships are added.
-An email notification is sent to members whenever there's a change.
+The fourth component, is a cloud function that runs daily.
+This function deletes expired members from the Google group and notifies them. This component is a work in progress.
 
 ## Next steps
 
