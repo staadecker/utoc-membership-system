@@ -26,7 +26,6 @@ const MEMBERSHIP_TYPES = {
 };
 
 const PAYMENT_METHOD = "Website";
-const WELCOME_URL = "https://utoc.ca/welcome";
 const SUCCESS_EMAIL_TEMPLATE_ID = "d-2c050487f52c45f389343a084b419198";
 const NO_REPLY_EMAIL = "noreply@utoc.ca";
 
@@ -82,12 +81,18 @@ const loadConfigFromGoogleSecretManager = async () => {
 /**
  * Catches errors from the Cloud function
  */
-const errorHandler = (funcToRun) => async (req, res) => {
+const wrapper = (funcToRun) => async (message, _) => {
+  let body;
   try {
-    return await funcToRun(req, res); // We need the await to ensure that the async commands are run within the try-catch
+    console.log("Received request");
+
+    console.log("Parsing Pub/Sub...");
+    body = JSON.parse(Buffer.from(message.data, "base64").toString());
+
+    return await funcToRun(body); // We need the await to ensure that the async commands are run within the try-catch
   } catch (e) {
     console.error(e);
-    console.log(`Recovering request body: ${JSON.stringify(req.body)}`); // Ensures we don't loose any data.
+    console.log(`Recovering request body: ${JSON.stringify(body)}`); // Ensures we don't loose any data.
   }
 };
 // endregion
@@ -164,20 +169,17 @@ const getGoogleGroupClient = async () => {
  * This function verifies that the request has the right format. If not, it throws.
  * Returns the membership type
  */
-const validateRequest = (req) => {
-  if (req.method !== "POST")
-    throw new Error("Invalid request. Not using POST method");
-
-  if (typeof req.body.orderID !== "string")
+const validateRequest = (body) => {
+  if (typeof body.orderID !== "string")
     throw new Error("No orderID contained in request.");
 
   if (
-    typeof req.body.membership_type !== "string" ||
-    !Object.keys(MEMBERSHIP_TYPES).includes(req.body.membership_type)
+    typeof body.membership_type !== "string" ||
+    !Object.keys(MEMBERSHIP_TYPES).includes(body.membership_type)
   )
     throw new Error("No valid membership_type contained in request.");
 
-  return MEMBERSHIP_TYPES[req.body.membership_type];
+  return MEMBERSHIP_TYPES[body.membership_type];
 };
 
 const validatePayment = async (orderID, payPalClient, membershipType) => {
@@ -273,16 +275,12 @@ const sendSuccessEmail = async (email, name) => {
 
 // endregion
 
-const main = async (req, res) => {
+const main = async (body) => {
   console.log("Received request.");
 
-  // Always redirect to welcome page first
-  console.log("Redirecting to welcome page...");
-  res.redirect(WELCOME_URL);
-
   console.log("Validating request...");
-  const membershipType = validateRequest(req);
-  const { orderID, email, firstName } = req.body;
+  const membershipType = validateRequest(body);
+  const { orderID, email, firstName } = body;
 
   console.log("Loading secrets from Secret Manager...");
   await loadConfigFromGoogleSecretManager();
@@ -302,7 +300,7 @@ const main = async (req, res) => {
   await capturePayment(orderID, payPalClient);
 
   console.log("Writing new member to database...");
-  await writeAccountToDatabase(req.body, membershipType, googleSheet);
+  await writeAccountToDatabase(body, membershipType, googleSheet);
 
   console.log("Adding member to Google Group...");
   await addUserToGoogleGroup(googleGroupClient, email);
@@ -313,4 +311,4 @@ const main = async (req, res) => {
   console.log("Done.");
 };
 
-module.exports = { main: errorHandler(main), Constants: { WELCOME_URL } };
+module.exports = { main: wrapper(main) };

@@ -1,7 +1,6 @@
 process.env.ENVIRONMENT = "test";
 
-const request = require("supertest");
-const { main, Constants } = require("./index");
+const { main } = require("./index");
 const { mocks: sheetsMocks } = require("google-spreadsheet");
 const { mocks: paypalMocks } = require("@paypal/checkout-server-sdk");
 const { mocks: googleApiMock } = require("googleapis");
@@ -18,14 +17,8 @@ const validBody = {
   orderID: "0NY62877GC1270645",
 };
 
-const validRequest = {
-  body: validBody,
-  method: "POST",
-};
-
-const validResponse = {
-  redirect: jest.fn(),
-};
+const runFunction = (body) =>
+  main({ data: Buffer.from(JSON.stringify(body), "utf8") });
 
 const last = (array) => array[array.length - 1];
 
@@ -187,11 +180,7 @@ describe("all tests", () => {
   });
 
   test("should complete all steps on valid request", async () => {
-    await main(validRequest, validResponse);
-
-    // Redirect to welcome url
-    expect(validResponse.redirect).toHaveBeenCalledTimes(1);
-    expect(validResponse.redirect).toHaveBeenCalledWith(Constants.WELCOME_URL);
+    await runFunction(validBody);
 
     // Captures paypal payment
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
@@ -200,7 +189,7 @@ describe("all tests", () => {
     expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
     expect(dataAdded).toMatchObject(validBody);
-    expect(dataAdded.creation_time).toBeCloseTo(moment().unix(), 2);
+    expect(dataAdded.creation_time).toBeCloseTo(moment().unix(), -1);
     expect(dataAdded.expiry).toBeGreaterThan(moment().unix());
 
     // Add the user to the google group
@@ -218,15 +207,14 @@ describe("all tests", () => {
   });
 
   test("should fail if request is not a POST request or if missing orderId / membership_type", async () => {
-    const invalidRequests = [
-      { ...validRequest, method: "GET" },
-      { ...validRequest, body: {} },
-      { ...validRequest, body: { ...validBody, membership_type: undefined } },
-      { ...validRequest, body: { ...validBody, orderID: undefined } },
+    const invalidBodies = [
+      {},
+      { ...validBody, membership_type: undefined },
+      { ...validBody, orderID: undefined },
     ];
 
     // Run the function for each one
-    await Promise.all(invalidRequests.map((req) => main(req, validResponse)));
+    await Promise.all(invalidBodies.map((body) => runFunction(body)));
 
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
     expect(sheetsMocks.addRow).not.toHaveBeenCalled();
@@ -237,7 +225,7 @@ describe("all tests", () => {
   test("should fail without capturing order if order amount is different than membership_type", async () => {
     paypalMocks.getOrderAmount.mockReturnValueOnce(13.3333);
 
-    await main(validRequest, validResponse);
+    await runFunction(validBody);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
@@ -250,7 +238,7 @@ describe("all tests", () => {
       throw new Error();
     });
 
-    await main(validRequest, validResponse);
+    await runFunction(validBody);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
@@ -263,7 +251,7 @@ describe("all tests", () => {
       throw new Error();
     });
 
-    await main(validRequest, validResponse);
+    await runFunction(validBody);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
@@ -277,7 +265,7 @@ describe("all tests", () => {
       firstName: undefined, // override name to not exist in return value
     });
 
-    await main(validRequest, validResponse);
+    await runFunction(validBody);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
@@ -294,7 +282,7 @@ describe("all tests", () => {
     }
     googleApiMock.insertMemberToGroup.mockReturnValueOnce(new ConflictError());
 
-    await main(validRequest, validResponse);
+    await runFunction(validBody);
 
     expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
     expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
@@ -305,8 +293,10 @@ describe("all tests", () => {
     console.error = jest.fn();
     console.log = jest.fn();
 
-    await main(validRequest, validResponse);
+    await runFunction(validBody);
 
-    expect(last(console.log.mock.calls)[0]).toContain(JSON.stringify(validRequest.body));
+    expect(last(console.log.mock.calls)[0]).toContain(
+      JSON.stringify(validBody)
+    );
   });
 });

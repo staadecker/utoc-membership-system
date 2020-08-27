@@ -3,12 +3,12 @@ steps:
     args:
       - functions
       - deploy
-      - membership-form-backend
+      - membership-form-backend-trigger
       - --source=.
       - --region=northamerica-northeast1
       - --entry-point=main
       - --runtime=nodejs10
-      - --trigger-topic=membership-form-backend
+      - --trigger-http
 # The following lines should be used only when creating the function
-#      - --set-env-vars=ENVIRONMENT=development # should be set appropriately
+#      - --allow-unauthenticated # requires Security Admin permissions
 #      - --service-account=    # should be set appropriately
