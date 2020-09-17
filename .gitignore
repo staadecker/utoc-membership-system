@@ -12,6 +12,8 @@ node_modules
 coverage
 yarn-error.log
 
+components/membership-form-frontend/env.js
+
 # Logs
 logs
 *.log

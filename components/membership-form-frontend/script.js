@@ -1,19 +1,4 @@
 /** CONSTANTS **/
-const ENVIRONMENT = "dev"; // Switch to "prod" or "test" accordingly
-
-const PAYPAL_CLIENT_ID =
-  ENVIRONMENT === "prod"
-    ? "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM"
-    : "AYog27JQO-o3LLVZUXKmig1RhRRRc_GjOCASqE1m-bqDxWjxRcC3-TOzFle2UFWn7Vm5LbBOBc4b1oRf";
-
-const BACKEND_ENDPOINTS = {
-  prod:
-    "https://northamerica-northeast1-utoc-membership-system.cloudfunctions.net/membership-form-backend-trigger",
-  dev: "http://localhost:8080",
-  test:
-    "https://northamerica-northeast1-utoc-membership-system-test.cloudfunctions.net/membership-form-backend-trigger",
-};
-
 const PRICING = {
   student: 20,
   regular: 30,
@@ -34,7 +19,7 @@ document.head.appendChild(scriptTag);
 /* Define what happens when they press next */
 function toPaymentTab() {
   const membershipForm = document.getElementById("membership_form");
-  membershipForm.action = BACKEND_ENDPOINTS[ENVIRONMENT];
+  membershipForm.action = BACKEND_ENDPOINT;
 
   if (!membershipForm.checkValidity()) return;
   // Hide the current tab:
@@ -54,7 +39,7 @@ function toPaymentTab() {
         const typeDropdown = document.getElementById("membership_type");
         const value = PRICING[
           typeDropdown.options[typeDropdown.selectedIndex].value
-          ].toString();
+        ].toString();
         return actions.order.create({
           purchase_units: [{ amount: { value } }],
         });
