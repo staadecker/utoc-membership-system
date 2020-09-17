@@ -11,11 +11,12 @@ Once the user inputs their membership information and completes the Paypal payme
 
 ## Technical details
 
-This form is simply HTML code with some embedded Vanilla Javascript.
-It is kept simple to allow for easy embedding on the squarespace website.
+This form is some simple HTML, CSS and Javascript. It has been purposefully kept simple.
 
-For styling, we give our HTML tags classes that match Squarespace's form styling classes.
-Note that since we inherit the styling from Squarespace, serving the HTML page locally will render a page with no styling.
+The form is hosted on Google Firebase and then embedded on the squarespace website using on iframe.
+
+The form can submit to three different endpoints depending on the environment (localhost, testing GCP project, production GCP project).
+During the build process, the appropriate environment is selected. When testing locally, one must create the proper `env.js` file (see below).
 
 ## Development
 
@@ -27,9 +28,9 @@ Here are the steps to run the form on your computer.
 
 1. Clone this repository.
 
-2. Set the variable `ENVIRONMENT` in `index.html` to `"dev"`.
+2. Copy `./environment/env.localhost.js` to `./env.js`. This will specify to use the PayPal sandbox environment and localhost endpoint.
 
-3. Open `index.html` in your browser. Note that there will be no styling as explained above.
+3. Open `index.html` in your browser.
 
 4. Fill out the form and complete a PayPal purchase using a [Personal PayPal Sandbox Account](https://developer.paypal.com/docs/api-basics/sandbox/accounts/).
 
@@ -37,17 +38,13 @@ Here are the steps to run the form on your computer.
 
 ### Running on squarespace (as a test)
 
-Same as running locally however
-
-a. Set the variable `ENVIRONMENT` in `index.html` to `"test"`.
-
-b. Copy paste the content of `index.html` into a hidden webpage on Squarespace using the "Code" component on squarespace.
+TODO
 
 ### Testing the form
 
 While completing the form, check the following:
 
-- [ ] All form questions render and are aesthetically pleasing (only on Squarespace).
+- [ ] All form questions render and are aesthetically pleasing.
 - [ ] No spelling mistakes.
 - [ ] Can't submit without the required fields.
 - [ ] Can submit without the optional fields.
@@ -61,23 +58,4 @@ Complete the payment and then check the following in the POST request to the bac
 
 ### Deploying the form on squarespace
 
-1. :warning: Set the variable `ENVIRONMENT` in `index.html` to `"prod"`.
-
-2. Copy paste the content of index.html into the existing code block on the Squarespace membership sign up form page.
-
-## Design considerations
-
-In this section, I discuss two design decisions that I made while building the membership form.
-
-### Inheriting styling from squarespace
-
-The decision to inherit styling from squarespace got rid of the need for custom CSS but comes with some drawbacks.
-Notably, changes to squarespace's internal system (e.g. CSS class names) could break the styling of the form.
-Given the time, I would write my own CSS to style the form independently from squarespace.
-
-### Embedded form vs hosted site
-
-The decision to embedded the form on the squarespace website rather than hosting it separately has advantages and disadvantages.
-Embedding gets rid of the extra complexity of hosting a site.
-That being said, hosting a site would offer more flexibility and would offer the possibility of using better tools such as React.
-Overall, considering the membership form to be small and simple, I decided to keep the system as minimal as possible, opting for the embedded form.
+Changes will be automatically deployed by Google Cloud Build upon merging the changes to the remote master branch.
