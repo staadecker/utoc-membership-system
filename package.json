@@ -2,18 +2,19 @@
   "name": "membership-system",
   "version": "1.0.0",
   "license": "MIT",
-  "dependencies": {
-    "lerna": "^3.22.1"
-  },
   "private": true,
   "scripts": {
-    "auth": "gcloud auth login && gcloud auth application-default login && gcloud config set project utoc-membership-system-test"
+    "set-proj-test": "gcloud config set project utoc-membership-system-test",
+    "auth": "gcloud auth login && gcloud auth application-default login && yarn set-proj-test",
+    "deploy-frontend": "yarn set-proj-test && gcloud builds submit ./components/membership-form-backend --config=components/membership-form-frontend/cloudbuild.yaml",
+    "deploy-backend-trigger": "yarn set-proj-test && gcloud builds submit ./components/membership-form-backend-trigger --config=components/membership-form-backend-trigger/cloudbuild.yaml"
   },
   "workspaces": [
     "components/*"
   ],
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.7.1",
+    "firebase-tools": "^8.10.0",
     "prettier": "^2.1.1"
   }
 }
