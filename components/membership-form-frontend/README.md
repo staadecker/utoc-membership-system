@@ -38,7 +38,7 @@ Here are the steps to run the form on your computer.
 
 ### Running on squarespace (as a test)
 
-TODO
+See the [`squarespace-iframe` component](../squarespace-iframe/README.md) to see how to embed this form on squarespace.
 
 ### Testing the form
 
