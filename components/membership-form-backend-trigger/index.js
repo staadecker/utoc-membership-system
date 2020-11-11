@@ -14,7 +14,7 @@ module.exports.main = async (req, res) => {
       .publish(Buffer.from(JSON.stringify(req.body), "utf8"));
 
     console.log("Redirecting to welcome page...");
-    res.redirect(WELCOME_URL);
+    res.send(`<script>window.top.location.href = \"${WELCOME_URL}\"; </script>`);
 
     console.log("Done.");
   } catch (e) {
