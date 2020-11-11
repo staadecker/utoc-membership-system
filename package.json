@@ -6,9 +6,8 @@
   "scripts": {
     "set-proj-test": "gcloud config set project utoc-membership-system-test",
     "auth": "gcloud auth login && gcloud auth application-default login && yarn set-proj-test",
-    "deploy-frontend": "yarn set-proj-test && gcloud builds submit --config=components/membership-form-frontend/cloudbuild.yaml",
-    "deploy-backend-trigger": "yarn set-proj-test && gcloud builds submit --config=components/membership-form-backend-trigger/cloudbuild.yaml",
-    "deploy-backend": "yarn set-proj-test"
+    "deploy-frontend": "yarn set-proj-test && gcloud builds submit ./components/membership-form-backend --config=components/membership-form-frontend/cloudbuild.yaml",
+    "deploy-backend-trigger": "yarn set-proj-test && gcloud builds submit ./components/membership-form-backend-trigger --config=components/membership-form-backend-trigger/cloudbuild.yaml"
   },
   "workspaces": [
     "components/*"
