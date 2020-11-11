@@ -82,12 +82,18 @@ const errorHandler = (func) => async (...args) => {
   }
 };
 
-const sendRemovingEmail = async (email, name) => {
+const sendRemovingEmail = async (expiredMember) => {
   const msg = {
-    to: email,
-    from: NO_REPLY_EMAIL,
+    to: expiredMember.email,
+    from: {
+      email: NO_REPLY_EMAIL,
+      name: "UTOC",
+    },
     template_id: Config.removeEmailTemplateId,
-    dynamic_template_data: { email, name },
+    dynamic_template_data: {
+      email: expiredMember.email,
+      name: expiredMember.firstName,
+    },
   };
 
   await sendGridClient.send(msg);
@@ -167,9 +173,27 @@ const readDatabase = async (googleSheet) => {
   const emailsInDb = {};
   const curTime = Date.now() / 1000;
 
-  for (const { email, expiry } of rows) emailsInDb[email] = expiry < curTime;
+  for (const { email, expiry, first_name, last_name } of rows)
+    emailsInDb[email] = {
+      expired: expiry < curTime,
+      firstName: first_name,
+      lastName: last_name,
+    };
 
   return emailsInDb;
+};
+
+const getName = (member) => {
+  if (member === undefined) return "";
+
+  if (member.lastName === "") {
+    const indexOfFirstSpace = member.firstName.indexOf(" ");
+    return indexOfFirstSpace === -1
+      ? member.firstName
+      : member.firstName.slice(0, indexOfFirstSpace);
+  }
+
+  return member.firstName;
 };
 
 /**
@@ -180,9 +204,14 @@ const readDatabase = async (googleSheet) => {
  * @param emailsInDb an object where keys are the objects in the database and values are if the email is expired
  */
 const getExpiredMembers = async (emailsInGroupArr, emailsInDb) => {
-  return emailsInGroupArr.filter((email) => {
-    return emailsInDb[email];
+  const expiredEmails = emailsInGroupArr.filter((email) => {
+    return !emailsInDb.hasOwnProperty(email) || emailsInDb[email].expired;
   });
+
+  return expiredEmails.map((email) => ({
+    email,
+    firstName: getName(emailsInDb[email]),
+  }));
 };
 
 const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
@@ -200,20 +229,24 @@ const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
 };
 
 /**
- * Runs the remove & add to google group actions
+ * Remove members from google group
  */
 const removeExpired = async (googleGroupClient, expiredMembers) => {
-  let [numRemoved, numFailed] = [0, 0, 0];
+  let numFailed = 0;
+  let numRemoved = 0;
 
   for (const expiredMember of expiredMembers) {
-    console.log(`Removing ${email} from group...`);
-    const success = await removeUserFromGoogleGroup(googleGroupClient, email);
+    console.log(`Removing ${expiredMember.email} from group...`);
+    const success = await removeUserFromGoogleGroup(
+      googleGroupClient,
+      expiredMember.email
+    );
 
     if (!success) {
       numFailed++;
     }
 
-    await sendRemovingEmail(email, EMAILS.removedFromGroup);
+    await sendRemovingEmail(expiredMember);
     numRemoved++;
   }
 };
@@ -224,30 +257,34 @@ const removeExpired = async (googleGroupClient, expiredMembers) => {
 const main = async (message, context) => {
   console.log("Received request.");
 
-  console.log("Loading dependencies...");
+  console.log("Loading secrets from Secret Manager...");
   await loadConfigFromGoogleSecretManager(); // Populate Config object with secrets
+
+  console.log(
+    "Initializing clients for Google Group API, Google Sheets API & SendGrid API"
+  );
   const googleSheet = await getGoogleSheet(); // Get object to read Google Sheet
   const googleGroupClient = await getGoogleGroupClient(); // Get object to make calls to the Directory API
   sendGridClient.setApiKey(Config.sendGridApiKey); // Setup SendGrid
 
   console.log("Getting mailing list members...");
-
   const membersFromGroup = await getMembersInGroup(googleGroupClient);
 
   console.log("Get database emails...");
-
   const membersInDb = await readDatabase(googleSheet);
 
-  console.log("Calculating changes...");
+  console.log("Calculating expired members...");
+  const expiredMembers = await getExpiredMembers(membersFromGroup, membersInDb);
 
-  const actions = await getExpiredMembers(membersFromGroup, membersInDb);
+  console.log(membersFromGroup);
+  console.log(membersInDb);
+  console.log(expiredMembers);
 
-  console.log(`Applying changes...`);
-
-  await removeExpired(googleGroupClient, actions);
+  console.log(`Removing ${expiredMembers.length} expired members...`);
+  await removeExpired(googleGroupClient, expiredMembers);
 
   console.log("Done.");
 };
 
 // Export the main function but wrapped with the error handler
-module.exports = { main: errorHandler(main) };
+module.exports = { main: errorHandler(main), getName };

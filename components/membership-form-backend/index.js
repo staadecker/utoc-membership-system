@@ -265,7 +265,10 @@ const addUserToGoogleGroup = async (googleGroupClient, email) => {
 const sendSuccessEmail = async (email, name) => {
   const msg = {
     to: email,
-    from: NO_REPLY_EMAIL,
+    from: {
+      email: NO_REPLY_EMAIL,
+      name: "UTOC",
+    },
     template_id: SUCCESS_EMAIL_TEMPLATE_ID,
     dynamic_template_data: { name },
   };
