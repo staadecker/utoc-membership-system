@@ -14,7 +14,10 @@ module.exports.main = async (req, res) => {
       .publish(Buffer.from(JSON.stringify(req.body), "utf8"));
 
     console.log("Redirecting to welcome page...");
-    res.redirect(WELCOME_URL);
+    // We don't use res.redirect since that would redirect only the iFrame not the entire page
+    res.send(
+      `<script>window.top.location.href = \"${WELCOME_URL}\"; </script>`
+    );
 
     console.log("Done.");
   } catch (e) {

@@ -1,0 +1,9 @@
+steps:
+  # Copy over the proper environment
+  - name: google/cloud-sdk:alpine
+    entrypoint: gsutil
+    args: ["cp", "components/membership-form-frontend/environments/env.$PROJECT_ID.js", "components/membership-form-frontend/env.js"]
+  # Deploy to firebase
+  - name: gcr.io/$PROJECT_ID/firebase:latest
+    dir: "components/membership-form-frontend"
+    args: ['deploy', '--project=$PROJECT_ID', '--only=hosting']

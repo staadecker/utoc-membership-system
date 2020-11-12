@@ -1,173 +1,119 @@
-<script>
-  /** CONSTANTS **/
-  const ENVIRONMENT = "dev"; // Switch to "prod" or "test" accordingly
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Membership Sign Up Form</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="//fonts.googleapis.com/css?family=Raleway"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <form id="membership_form" method="post">
+      <div id="infoTab">
+        <div class="field">
+          <label for="first_name">First Name *</label>
+          <label class="caption">
+            <input
+              id="first_name"
+              name="first_name"
+              type="text"
+              class="field-element"
+              required
+            />
+          </label>
+        </div>
+        <div class="field">
+          <label for="last_name">Last Name *</label>
+          <label class="caption">
+            <input
+              id="last_name"
+              name="last_name"
+              type="text"
+              class="field-element"
+              required
+            />
+          </label>
+        </div>
+        <div class="field">
+          <label for="school">School</label>
+          <label class="caption">
+            <input
+              id="school"
+              name="school"
+              class="field-element"
+              type="text"
+            />
+          </label>
+        </div>
+        <div class="field">
+          <label for="program">
+            Program & College (if you are a UofT student)
+          </label>
+          <label class="caption">
+            <input
+              id="program"
+              type="text"
+              class="field-element"
+              name="program_and_college"
+            />
+          </label>
+        </div>
+        <div class="field">
+          <label for="email">
+            Email * (we will notify you of events and trips using this email)
+          </label>
+          <label class="caption">
+            <input
+              id="email"
+              type="email"
+              class="field-element"
+              name="email"
+              required
+            />
+          </label>
+        </div>
 
-  const PAYPAL_CLIENT_ID =
-    ENVIRONMENT === "prod"
-      ? "AaftH1Mfk-GOt-qdcx6p2_e_XPJlRL1b3azjvRsf6c3avWLSvklYtdig4HhYNCL1i59bgYbg68syqUCM"
-      : "AYog27JQO-o3LLVZUXKmig1RhRRRc_GjOCASqE1m-bqDxWjxRcC3-TOzFle2UFWn7Vm5LbBOBc4b1oRf";
-
-  const BACKEND_ENDPOINTS = {
-    prod:
-      "https://northamerica-northeast1-utoc-membership-system.cloudfunctions.net/membership-form-backend-trigger",
-    dev: "http://localhost:8080",
-    test:
-      "https://northamerica-northeast1-utoc-membership-system-test.cloudfunctions.net/membership-form-backend-trigger",
-  };
-
-  const PRICING = {
-    student: 20,
-    regular: 30,
-    family: 40,
-    summer: 10,
-  };
-</script>
-
-<div class="form-wrapper">
-  <form id="membership_form" method="post">
-    <div id="infoTab" class="field-list">
-      <div class="field">
-        <label for="first_name">First Name *</label>
-        <label class="caption">
-          <input
-            id="first_name"
-            name="first_name"
-            type="text"
-            class="field-element"
-            required
-          />
-        </label>
-      </div>
-      <div class="field">
-        <label for="last_name">Last Name *</label>
-        <label class="caption">
-          <input
-            id="last_name"
-            name="last_name"
-            type="text"
-            class="field-element"
-            required
-          />
-        </label>
-      </div>
-      <div class="field">
-        <label for="school">School</label>
-        <label class="caption">
-          <input id="school" name="school" class="field-element" type="text" />
-        </label>
-      </div>
-      <div class="field">
-        <label for="program">
-          Program & College (if you are a UofT student)
-        </label>
-        <label class="caption">
-          <input
-            id="program"
-            type="text"
-            class="field-element"
-            name="program_and_college"
-          />
-        </label>
-      </div>
-      <div class="field">
-        <label for="email">
-          Email * (we will notify you of events and trips using this email)
-        </label>
-        <label class="caption">
-          <input
-            id="email"
-            type="email"
-            class="field-element"
-            name="email"
-            required
-          />
-        </label>
-      </div>
-
-      <br />
-
-      <button
-        type="button"
-        class="sqs-editable-button"
-        onclick="toPaymentTab()"
-      >
-        Next
-      </button>
-    </div>
-
-    <div id="paymentTab" style="display: none;">
-      <input type="hidden" id="orderID" name="orderID" />
-
-      <h2>Choose your membership type</h2>
-
-      <div class="field select">
-        <select name="membership_type" id="membership_type">
-          <option value="student">
-            Student Membership $20.00 CAD - 1 year
-          </option>
-          <option value="regular">
-            Regular Membership $30.00 CAD - 1 year
-          </option>
-          <option value="family">Family Membership $40.00 CAD - 1 year</option>
-          <option value="summer">
-            Summer Membership $10.00 CAD - 4 months
-          </option>
-        </select>
+        <button
+          type="button"
+          class="sqs-editable-button"
+          onclick="toPaymentTab()"
+        >
+          Next
+        </button>
       </div>
 
-      <h2>Payment</h2>
+      <div id="paymentTab" style="display: none">
+        <input type="hidden" id="orderID" name="orderID" />
 
-      <div id="paypal-button-container"></div>
-    </div>
-  </form>
-</div>
+        <h2>Choose your membership type</h2>
 
-<script>
-  /* Import the PayPal SDK */
-  const scriptTag = document.createElement("script");
-  scriptTag.setAttribute(
-    "src",
-    "https://www.paypal.com/sdk/js?currency=CAD&client-id=" + PAYPAL_CLIENT_ID
-  );
-  scriptTag.setAttribute("data-sdk-integration-source", "button-factory");
+        <div class="field select">
+          <select name="membership_type" id="membership_type">
+            <option value="student">
+              Student Membership $20.00 CAD - 1 year
+            </option>
+            <option value="regular">
+              Regular Membership $30.00 CAD - 1 year
+            </option>
+            <option value="family">
+              Family Membership $40.00 CAD - 1 year
+            </option>
+            <option value="summer">
+              Summer Membership $10.00 CAD - 4 months
+            </option>
+          </select>
+        </div>
 
-  document.head.appendChild(scriptTag);
-</script>
+        <h2>Payment</h2>
 
-<script>
-  /* Define what happens when they press next */
-  function toPaymentTab() {
-    const membershipForm = document.getElementById("membership_form");
-    membershipForm.action = BACKEND_ENDPOINTS[ENVIRONMENT];
+        <div id="paypal-button-container"></div>
+      </div>
+    </form>
 
-    if (!membershipForm.checkValidity()) return;
-    // Hide the current tab:
-    document.getElementById("infoTab").style.display = "none";
-    // Display the next tab
-    document.getElementById("paymentTab").style.display = "inline";
-
-    paypal
-      .Buttons({
-        style: {
-          shape: "pill",
-          color: "gold",
-          layout: "vertical",
-          label: "pay",
-        },
-        createOrder: function (data, actions) {
-          const typeDropdown = document.getElementById("membership_type");
-          const value = PRICING[
-            typeDropdown.options[typeDropdown.selectedIndex].value
-          ].toString();
-          return actions.order.create({
-            purchase_units: [{ amount: { value } }],
-          });
-        },
-        onApprove: function (data) {
-          document.getElementById("orderID").value = data.orderID;
-          membershipForm.submit();
-        },
-      })
-      .render("#paypal-button-container");
-  }
-</script>
+    <script src="env.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
