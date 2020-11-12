@@ -70,7 +70,6 @@ const loadConfigFromGoogleSecretManager = async () => {
   const loadedConfig = JSON.parse(versions[0].payload.data.toString());
 
   // Use loaded JSON to populate Config object
-  // Replace all values that are null
   for (const key in Config) {
     if (loadedConfig[key] === undefined)
       throw new Error(`Missing ${key} in GCP Secret Manager`);
@@ -118,8 +117,8 @@ const getPayPalClient = () => {
 };
 
 /**
- * Returns the google sheet with the ID specified in the environment variable.
- * Authentication is performed through a service account key file for development ("creds.json")
+ * Returns the google sheet with specified ID
+ * Authentication is performed through credentials stored in GCP Secret manager
  */
 const getGoogleSheet = async () => {
   const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
@@ -131,7 +130,7 @@ const getGoogleSheet = async () => {
 
   await doc.loadInfo();
 
-  return doc.sheetsByIndex[1];
+  return doc.sheetsByIndex[1]; // Data is stored in second tab (index 1)
 };
 
 /**
@@ -286,7 +285,7 @@ const main = async (body) => {
   const { orderID, email, firstName } = body;
 
   console.log("Loading secrets from Secret Manager...");
-  await loadConfigFromGoogleSecretManager();
+  await loadConfigFromGoogleSecretManager(); // Populate Config object with secrets
 
   console.log(
     "Initializing clients for Google Group API, PayPal API, Google Sheets API & SendGrid API"

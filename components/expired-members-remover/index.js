@@ -3,12 +3,15 @@ const { GoogleSpreadsheet } = require("google-spreadsheet");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const sendGridClient = require("@sendgrid/mail");
 
+const REMOVE_EMAIL_TEMPLATE_ID = "d-b23a2ee67d8f4f78bda907112024537a";
+
 // region Constants
-const secretIds = {
+const GCP_SECRET_ID = {
   production:
     "projects/757988677903/secrets/expired-members-remover-config/versions/latest",
   development:
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
+  test: null,
 };
 
 const NO_REPLY_EMAIL = "no-reply@utoc.ca";
@@ -17,45 +20,28 @@ const NO_REPLY_EMAIL = "no-reply@utoc.ca";
  * The values to these variables are loaded from Google Cloud Secret manager when the function is run
  */
 const Config = {
-  googleSheetsServiceAccountKey: null,
-  googleSheetsServiceAccountEmail: null,
+  gSheetsServiceAccountEmail: null,
+  gSheetsServiceAccountPrivateKey: null,
+  databaseSpreadsheetId: null,
   directoryApiServiceAccountEmail: null,
   directoryApiServiceAccountKey: null,
-  googleGroupEmail: null,
   adminEmail: null,
-  databaseSpreadsheetId: null,
   sendGridApiKey: null,
-  removeEmailTemplateId: "d-b23a2ee67d8f4f78bda907112024537a",
+  googleGroupEmail: null,
 };
 
 // endregion
 
-// region Helpers
-/**
- * Returns the secret id based on the environment
- */
-const getSecretId = () => {
-  switch (process.env.ENVIRONMENT) {
-    case "production":
-      return secretIds.production;
-    case "development":
-      return secretIds.development;
-    case "test":
-      return null;
-    default:
-      throw new Error("Unknown environment");
-  }
-};
-
-/**
- * Replaces all the nulls in the Config variable with the value stored in the Google Secret manager
- */
+// region HELPER FUNCTIONS
 // noinspection DuplicatedCode
 const loadConfigFromGoogleSecretManager = async () => {
-  const secretId = getSecretId();
+  const secretId = GCP_SECRET_ID[process.env.ENVIRONMENT];
+
+  // we explicitly check for undefined to ensure the environment wasn't simply forgotten
+  if (secretId === undefined) throw new Error("Unknown environment");
 
   // Exit if no secret ID (happens during unit tests)
-  if (!secretId) return;
+  if (secretId === null) return;
 
   // Read JSON secret from Google Cloud Secret Manager
   const client = new SecretManagerServiceClient();
@@ -63,11 +49,10 @@ const loadConfigFromGoogleSecretManager = async () => {
   const loadedConfig = JSON.parse(versions[0].payload.data.toString());
 
   // Use loaded JSON to populate Config object
-  // Replace all values that are null
   for (const key in Config) {
-    if (Config[key] === null) {
-      Config[key] = loadedConfig[key];
-    }
+    if (loadedConfig[key] === undefined)
+      throw new Error(`Missing ${key} in GCP Secret Manager`);
+    Config[key] = loadedConfig[key];
   }
 };
 
@@ -90,7 +75,7 @@ const sendRemovingEmail = async (expiredMember) => {
       email: NO_REPLY_EMAIL,
       name: "UTOC",
     },
-    template_id: Config.removeEmailTemplateId,
+    template_id: REMOVE_EMAIL_TEMPLATE_ID,
     dynamic_template_data: { name: expiredMember.firstName },
   };
 
@@ -99,7 +84,24 @@ const sendRemovingEmail = async (expiredMember) => {
 
 // endregion
 
-// region Setup
+// region SETUP
+
+/**
+ * Returns the google sheet with specified ID
+ * Authentication is performed through credentials stored in GCP Secret manager
+ */
+const getGoogleSheet = async () => {
+  const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
+
+  await doc.useServiceAccountAuth({
+    client_email: Config.gSheetsServiceAccountEmail,
+    private_key: Config.gSheetsServiceAccountPrivateKey,
+  });
+
+  await doc.loadInfo();
+
+  return doc.sheetsByIndex[1]; // Data is stored in second tab (index 1)
+};
 
 /**
  * Returns an object that allows calls to the Directory API (used to add/remove members from the google group)
@@ -129,27 +131,9 @@ const getGoogleGroupClient = async () => {
   // noinspection JSValidateTypes
   return google.admin({ version: "directory_v1", auth });
 };
-
-/**
- * Returns the google sheet with specified ID
- * Authentication is performed through credentials stored in GCP Secret manager
- */
-const getGoogleSheet = async () => {
-  const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
-
-  await doc.useServiceAccountAuth({
-    client_email: Config.googleSheetsServiceAccountEmail,
-    private_key: Config.googleSheetsServiceAccountKey,
-  });
-
-  await doc.loadInfo();
-
-  return doc.sheetsByIndex[1]; // Data is stored in second tab (index 1)
-};
 // endregion
 
-// region Operations
-
+// region OPERATIONS
 /**
  * @return {Promise<*[]|*>} A list of email addresses of everyone in the Google Group
  */
