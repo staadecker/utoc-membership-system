@@ -7,7 +7,7 @@ const { mocks: googleApiMock } = require("googleapis");
 const { mocks: sendGridMock } = require("@sendgrid/mail");
 const moment = require("moment");
 
-const validBody = {
+const validBodyAutomatic = {
   first_name: "Martin",
   last_name: "Last",
   school: "U of T",
@@ -15,6 +15,16 @@ const validBody = {
   email: "somerandom-email-jljdsf@mail.utoronto.ca",
   membership_type: "student",
   orderID: "0NY62877GC1270645",
+};
+
+const validBodyManual = {
+  first_name: "Martin",
+  last_name: "Last",
+  school: "U of T",
+  program_and_college: "EngSci :)",
+  email: "somerandom-email-jljdsf@mail.utoronto.ca",
+  membership_type: "student",
+  manual_sign_up_password: "test-password",
 };
 
 const runFunction = (body) =>
@@ -129,6 +139,7 @@ jest.mock("@google-cloud/secret-manager", () => {
       adminEmail: null,
       sendGridApiKey: null,
       googleGroupEmail: null,
+      manualSignUpPassword: "test-password",
     })),
   };
 
@@ -180,7 +191,7 @@ describe("all tests", () => {
   });
 
   test("should complete all steps on valid request", async () => {
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     // Captures paypal payment
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
@@ -188,29 +199,32 @@ describe("all tests", () => {
     // Adds the data to the database
     expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
     const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
-    expect(dataAdded).toMatchObject(validBody);
+    expect(dataAdded).toMatchObject(validBodyAutomatic);
     expect(dataAdded.creation_time).toBeCloseTo(moment().unix(), -1);
     expect(dataAdded.expiry).toBeGreaterThan(moment().unix());
+    expect(dataAdded.payment_method).toBe("Website");
 
     // Add the user to the google group
     expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
     const insertMemberOptions =
       googleApiMock.insertMemberToGroup.mock.calls[0][0];
     expect(insertMemberOptions.requestBody.email).toStrictEqual(
-      validBody.email
+      validBodyAutomatic.email
     );
 
     // Send the success email
     expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
     const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
-    expect(sendEmailOptions.to).toStrictEqual(validBody.email);
+    expect(sendEmailOptions.to).toStrictEqual(validBodyAutomatic.email);
   });
 
-  test("should fail if request is not a POST request or if missing orderId / membership_type", async () => {
+  test("should fail if request is not a POST request or if missing orderId / membership_type / manual password", async () => {
     const invalidBodies = [
       {},
-      { ...validBody, membership_type: undefined },
-      { ...validBody, orderID: undefined },
+      { ...validBodyAutomatic, membership_type: undefined },
+      { ...validBodyAutomatic, orderID: undefined },
+      { ...validBodyManual, manual_sign_up_password: "wrong-password" },
+      { ...validBodyManual, manual_sign_up_password: undefined },
     ];
 
     // Run the function for each one
@@ -225,7 +239,7 @@ describe("all tests", () => {
   test("should fail without capturing order if order amount is different than membership_type", async () => {
     paypalMocks.getOrderAmount.mockReturnValueOnce(13.3333);
 
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
@@ -238,7 +252,7 @@ describe("all tests", () => {
       throw new Error();
     });
 
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).not.toHaveBeenCalled();
@@ -251,7 +265,7 @@ describe("all tests", () => {
       throw new Error();
     });
 
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
@@ -261,11 +275,11 @@ describe("all tests", () => {
 
   test("should return an error if some fields are dropped when writing to database", async () => {
     sheetsMocks.addRow.mockReturnValueOnce({
-      ...validBody,
+      ...validBodyAutomatic,
       firstName: undefined, // override name to not exist in return value
     });
 
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     expect(paypalMocks.getOrderAmount).toHaveBeenCalledTimes(1);
     expect(paypalMocks.captureRequest).toHaveBeenCalledTimes(1);
@@ -282,7 +296,7 @@ describe("all tests", () => {
     }
     googleApiMock.insertMemberToGroup.mockReturnValueOnce(new ConflictError());
 
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
     expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
@@ -293,10 +307,38 @@ describe("all tests", () => {
     console.error = jest.fn();
     console.log = jest.fn();
 
-    await runFunction(validBody);
+    await runFunction(validBodyAutomatic);
 
     expect(last(console.log.mock.calls)[0]).toContain(
-      JSON.stringify(validBody)
+      JSON.stringify(validBodyAutomatic)
     );
+  });
+
+  test("should succeed if given a manual signup password", async () => {
+    await runFunction(validBodyManual);
+
+    // Adds the data to the database
+    expect(sheetsMocks.addRow).toHaveBeenCalledTimes(1);
+    const dataAdded = sheetsMocks.addRow.mock.calls[0][0];
+    expect(dataAdded).toMatchObject({
+      ...validBodyManual,
+      manual_sign_up_password: undefined,
+    });
+    expect(dataAdded.creation_time).toBeCloseTo(moment().unix(), -1);
+    expect(dataAdded.expiry).toBeGreaterThan(moment().unix());
+    expect(dataAdded.payment_method).toBe("Manual (via System)");
+
+    // Add the user to the google group
+    expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
+    const insertMemberOptions =
+      googleApiMock.insertMemberToGroup.mock.calls[0][0];
+    expect(insertMemberOptions.requestBody.email).toStrictEqual(
+      validBodyAutomatic.email
+    );
+
+    // Send the success email
+    expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
+    const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
+    expect(sendEmailOptions.to).toStrictEqual(validBodyAutomatic.email);
   });
 });
