@@ -242,11 +242,13 @@ const main = async (message, context) => {
   console.log("Loading secrets from Secret Manager...");
   await loadConfigFromGoogleSecretManager(); // Populate Config object with secrets
 
-  console.log(
-    "Initializing clients for Google Group API, Google Sheets API & SendGrid API"
-  );
-  const googleSheet = await getGoogleSheet(); // Get object to read Google Sheet
+  console.log("Initializing clients for Google Sheets API");
+  const googleSheet = await getGoogleSheet();
+
+  console.log("Initializing clients for Google Group API");
   const googleGroupClient = await getGoogleGroupClient(); // Get object to make calls to the Directory API
+
+  console.log("Initializing SendGrid API");
   sendGridClient.setApiKey(Config.sendGridApiKey); // Setup SendGrid
 
   console.log("Getting mailing list members...");
