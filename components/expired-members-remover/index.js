@@ -90,10 +90,7 @@ const sendRemovingEmail = async (expiredMember) => {
       name: "UTOC",
     },
     template_id: Config.removeEmailTemplateId,
-    dynamic_template_data: {
-      email: expiredMember.email,
-      name: expiredMember.firstName,
-    },
+    dynamic_template_data: { name: expiredMember.firstName },
   };
 
   await sendGridClient.send(msg);
@@ -276,12 +273,10 @@ const main = async (message, context) => {
   console.log("Calculating expired members...");
   const expiredMembers = await getExpiredMembers(membersFromGroup, membersInDb);
 
-  console.log(membersFromGroup);
-  console.log(membersInDb);
   console.log(expiredMembers);
 
   console.log(`Removing ${expiredMembers.length} expired members...`);
-  await removeExpired(googleGroupClient, expiredMembers);
+  // await removeExpired(googleGroupClient, expiredMembers);
 
   console.log("Done.");
 };
