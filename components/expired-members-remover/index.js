@@ -5,7 +5,8 @@ const sendGridClient = require("@sendgrid/mail");
 
 // region Constants
 const secretIds = {
-  production: "",
+  production:
+    "projects/757988677903/secrets/expired-members-remover-config/versions/latest",
   development:
     "projects/620400297419/secrets/mailing-list-synchronizer-config/versions/latest",
 };
