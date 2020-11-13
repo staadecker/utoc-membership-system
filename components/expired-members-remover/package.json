@@ -1,5 +1,5 @@
 {
-  "name": "on-signup-complete",
+  "name": "expired-members-remover",
   "version": "1.0.0",
   "main": "index.js",
   "private": true,
