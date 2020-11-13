@@ -144,7 +144,7 @@ const getMembersInGroup = async (googleGroupClient) => {
 
   if (!res.data.members) return []; // If no members don't try map() and just return empty list
 
-  return res.data.members.map((m) => m.email);
+  return res.data.members.map((m) => m.email.toLowerCase());
 };
 
 /**
@@ -156,7 +156,7 @@ const readDatabase = async (googleSheet) => {
   const curTime = Date.now() / 1000;
 
   for (const { email, expiry, first_name, last_name } of rows)
-    emailsInDb[email] = {
+    emailsInDb[email.toLowerCase()] = {
       expired: expiry < curTime,
       firstName: first_name,
       lastName: last_name,
