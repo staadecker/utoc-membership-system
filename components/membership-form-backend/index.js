@@ -97,6 +97,7 @@ const wrapper = (funcToRun) => async (message, _) => {
     console.log("Received request");
 
     console.log("Parsing Pub/Sub...");
+    // body = message.data; // Uncomment line when testing locally
     body = JSON.parse(Buffer.from(message.data, "base64").toString());
 
     return await funcToRun(body); // We need the await to ensure that the async commands are run within the try-catch
