@@ -33,7 +33,7 @@ const MEMBERSHIP_TYPES = {
   },
 };
 
-const PAYMENT_METHOD = {
+const PAYMENT_METHODS = {
   automatic: "Website",
   manual: "Manual (via System)",
 };
@@ -62,7 +62,7 @@ const Config = {
   adminEmail: null,
   sendGridApiKey: null,
   googleGroupEmail: null,
-  manualSignUpPassword: null,
+  manualSignUpPassword: null, // Password that allows the function to be triggered manually (without payment)
 };
 
 // endregion
@@ -193,11 +193,11 @@ const validateAndParseRequest = (body) => {
   // determine payment method
   const paymentMethod =
     body.manual_sign_up_password === undefined
-      ? PAYMENT_METHOD.automatic
-      : PAYMENT_METHOD.manual;
+      ? PAYMENT_METHODS.automatic
+      : PAYMENT_METHODS.manual;
 
-  // 2. Complete checks for manual password
-  if (paymentMethod === PAYMENT_METHOD.manual) {
+  // Complete checks for manual password
+  if (paymentMethod === PAYMENT_METHODS.manual) {
     if (
       typeof body.manual_sign_up_password !== "string" || // password wrong type
       body.manual_sign_up_password !== Config.manualSignUpPassword // password wrong value
@@ -333,7 +333,7 @@ const main = async (unParsedRequest) => {
   const googleGroupClient = await getGoogleGroupClient();
   sendGridClient.setApiKey(Config.sendGridApiKey); // Setup SendGrid
 
-  if (request.payment_method === PAYMENT_METHOD.automatic) {
+  if (request.payment_method === PAYMENT_METHODS.automatic) {
     console.log("Validating payment...");
     await validatePayment(
       request.orderID,

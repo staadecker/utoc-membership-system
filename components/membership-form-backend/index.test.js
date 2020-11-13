@@ -225,6 +225,7 @@ describe("all tests", () => {
       { ...validBodyAutomatic, orderID: undefined },
       { ...validBodyManual, manual_sign_up_password: "wrong-password" },
       { ...validBodyManual, manual_sign_up_password: undefined },
+      { ...validBodyAutomatic, membership_type: "lifetime" },
     ];
 
     // Run the function for each one
