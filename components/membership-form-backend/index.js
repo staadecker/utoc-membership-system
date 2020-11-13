@@ -8,24 +8,36 @@ const { google } = require("googleapis");
 // region CONSTANTS
 const MEMBERSHIP_TYPES = {
   student: {
+    allowAutomatic: true,
     amount: 20,
     months: 12,
   },
   regular: {
+    allowAutomatic: true,
     amount: 30,
     months: 12,
   },
   family: {
+    allowAutomatic: true,
     amount: 40,
     months: 12,
   },
   summer: {
+    allowAutomatic: true,
     amount: 10,
     months: 4,
   },
+  lifetime: {
+    allowAutomatic: false,
+    months: 1200, // 100 years
+  },
 };
 
-const PAYMENT_METHOD = "Website";
+const PAYMENT_METHODS = {
+  automatic: "Website",
+  manual: "Manual (via System)",
+};
+
 const SUCCESS_EMAIL_TEMPLATE_ID = "d-2c050487f52c45f389343a084b419198";
 const NO_REPLY_EMAIL = "noreply@utoc.ca";
 
@@ -50,6 +62,7 @@ const Config = {
   adminEmail: null,
   sendGridApiKey: null,
   googleGroupEmail: null,
+  manualSignUpPassword: null, // Password that allows the function to be triggered manually (without payment)
 };
 
 // endregion
@@ -60,9 +73,6 @@ const loadConfigFromGoogleSecretManager = async () => {
 
   // we explicitly check for undefined to ensure the environment wasn't simply forgotten
   if (secretId === undefined) throw new Error("Unknown environment");
-
-  // Exit if no secret ID (happens during unit tests)
-  if (secretId === null) return;
 
   // Read JSON secret from Google Cloud Secret Manager
   const client = new SecretManagerServiceClient();
@@ -87,6 +97,7 @@ const wrapper = (funcToRun) => async (message, _) => {
     console.log("Received request");
 
     console.log("Parsing Pub/Sub...");
+    // body = message.data; // Uncomment line when testing locally
     body = JSON.parse(Buffer.from(message.data, "base64").toString());
 
     return await funcToRun(body); // We need the await to ensure that the async commands are run within the try-catch
@@ -169,20 +180,48 @@ const getGoogleGroupClient = async () => {
  * This function verifies that the request has the right format. If not, it throws.
  * Returns the membership type
  */
-const validateRequest = (body) => {
-  if (typeof body.orderID !== "string")
-    throw new Error("No orderID contained in request.");
-
+const validateAndParseRequest = (body) => {
+  // Verify that the membership_type exists
   if (
     typeof body.membership_type !== "string" ||
     !Object.keys(MEMBERSHIP_TYPES).includes(body.membership_type)
   )
     throw new Error("No valid membership_type contained in request.");
 
-  return MEMBERSHIP_TYPES[body.membership_type];
+  const membershipType = MEMBERSHIP_TYPES[body.membership_type];
+
+  // determine payment method
+  const paymentMethod =
+    body.manual_sign_up_password === undefined
+      ? PAYMENT_METHODS.automatic
+      : PAYMENT_METHODS.manual;
+
+  // Complete checks for manual password
+  if (paymentMethod === PAYMENT_METHODS.manual) {
+    if (
+      typeof body.manual_sign_up_password !== "string" || // password wrong type
+      body.manual_sign_up_password !== Config.manualSignUpPassword // password wrong value
+    )
+      throw new Error("Incorrect manual password."); // throw error
+  } else {
+    // if no manual password
+    if (typeof body.orderID !== "string")
+      throw new Error("No orderID contained in request.");
+
+    if (!MEMBERSHIP_TYPES[body.membership_type].allowAutomatic)
+      throw new Error("membership_type not allowed.");
+  }
+
+  return {
+    ...body,
+    manual_sign_up_password: undefined, // erase the password from the body to avoid writing it to database
+    payment_amount: membershipType.amount, // add the amount to the body to be included in db, may be undefined
+    payment_method: paymentMethod,
+    duration_months: membershipType.months,
+  };
 };
 
-const validatePayment = async (orderID, payPalClient, membershipType) => {
+const validatePayment = async (orderID, payPalClient, expectedPayment) => {
   const getOrderRequest = new PayPalSDK.orders.OrdersGetRequest(orderID);
 
   let order;
@@ -195,7 +234,6 @@ const validatePayment = async (orderID, payPalClient, membershipType) => {
     );
   }
 
-  const expectedPayment = membershipType.amount;
   const authorizedPayment = parseInt(
     order.result.purchase_units[0].amount.value
   );
@@ -221,22 +259,25 @@ const capturePayment = async (orderID, payPalClient) => {
   }
 };
 
-const writeAccountToDatabase = async (requestBody, membershipInfo, sheet) => {
+const writeAccountToDatabase = async (requestBody, sheet) => {
   const creationTime = moment();
-  const expiry = moment(creationTime).add(membershipInfo.months, "months");
+  const expiry = moment(creationTime).add(
+    requestBody.duration_months,
+    "months"
+  );
   const data = {
     ...requestBody,
-    payment_amount: membershipInfo.amount,
     creation_time: creationTime.unix(),
     expiry: expiry.unix(),
-    payment_method: PAYMENT_METHOD,
+    duration_months: undefined, // don't write the duration as it is captured in the expiry info
+    manual_sign_up_password: undefined, // it was removed above however this is just added safety (don't write password)
   };
 
   const row = await sheet.addRow(data);
 
   // Check to verify that all of 'data' was actually added (and hence returned in row)
   Object.keys(data).forEach((key) => {
-    if (row[key] === undefined)
+    if (data[key] !== undefined && row[key] === undefined)
       throw new Error(
         `Missing parameter '${key}' in Google Sheet database header.`
       );
@@ -275,15 +316,14 @@ const sendSuccessEmail = async (email, name) => {
 
 // endregion
 
-const main = async (body) => {
+const main = async (unParsedRequest) => {
   console.log("Received request.");
-
-  console.log("Validating request...");
-  const membershipType = validateRequest(body);
-  const { orderID, email, firstName } = body;
 
   console.log("Loading secrets from Secret Manager...");
   await loadConfigFromGoogleSecretManager();
+
+  console.log("Validating request...");
+  const request = validateAndParseRequest(unParsedRequest);
 
   console.log(
     "Initializing clients for Google Group API, PayPal API, Google Sheets API & SendGrid API"
@@ -293,20 +333,26 @@ const main = async (body) => {
   const googleGroupClient = await getGoogleGroupClient();
   sendGridClient.setApiKey(Config.sendGridApiKey); // Setup SendGrid
 
-  console.log("Validating payment...");
-  await validatePayment(orderID, payPalClient, membershipType);
+  if (request.payment_method === PAYMENT_METHODS.automatic) {
+    console.log("Validating payment...");
+    await validatePayment(
+      request.orderID,
+      payPalClient,
+      request.payment_amount
+    );
 
-  console.log("Capturing (accepting) payment...");
-  await capturePayment(orderID, payPalClient);
+    console.log("Capturing (accepting) payment...");
+    await capturePayment(request.orderID, payPalClient);
+  }
 
   console.log("Writing new member to database...");
-  await writeAccountToDatabase(body, membershipType, googleSheet);
+  await writeAccountToDatabase(request, googleSheet);
 
   console.log("Adding member to Google Group...");
-  await addUserToGoogleGroup(googleGroupClient, email);
+  await addUserToGoogleGroup(googleGroupClient, request.email);
 
   console.log("Sending success email...");
-  await sendSuccessEmail(email, firstName);
+  await sendSuccessEmail(request.email, request.first_name);
 
   console.log("Done.");
 };
