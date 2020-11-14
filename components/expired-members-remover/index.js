@@ -215,7 +215,6 @@ const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
  */
 const removeExpired = async (googleGroupClient, expiredMembers) => {
   let numFailed = 0;
-  let numRemoved = 0;
 
   for (const expiredMember of expiredMembers) {
     console.log(`Removing ${expiredMember.email} from group...`);
@@ -224,13 +223,13 @@ const removeExpired = async (googleGroupClient, expiredMembers) => {
       expiredMember.email
     );
 
-    if (!success) {
-      numFailed++;
-    }
+    if (!success) numFailed++;
 
     // await sendRemovingEmail(expiredMember);
-    numRemoved++;
   }
+
+  if (numFailed > 0)
+    throw new Error(`Failed to remove ${numFailed} expired member(s) from the mailing list.`);
 };
 
 // endregion
