@@ -228,7 +228,7 @@ const removeExpired = async (googleGroupClient, expiredMembers) => {
       numFailed++;
     }
 
-    await sendRemovingEmail(expiredMember);
+    // await sendRemovingEmail(expiredMember);
     numRemoved++;
   }
 };
@@ -263,7 +263,7 @@ const main = async (message, context) => {
   console.log(expiredMembers);
 
   console.log(`Removing ${expiredMembers.length} expired members...`);
-  // await removeExpired(googleGroupClient, expiredMembers);
+  await removeExpired(googleGroupClient, expiredMembers);
 
   console.log("Done.");
 };
