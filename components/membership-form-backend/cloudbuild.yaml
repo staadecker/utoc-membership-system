@@ -9,6 +9,7 @@ steps:
       - --entry-point=main
       - --runtime=nodejs10
       - --trigger-topic=membership-form-backend
+      - --timeout=300 # 5 minute timeout
 # The following lines should be used only when creating the function
 #      - --set-env-vars=ENVIRONMENT=development # should be set appropriately
 #      - --service-account=    # should be set appropriately
