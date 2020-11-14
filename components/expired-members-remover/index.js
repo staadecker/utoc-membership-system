@@ -225,7 +225,7 @@ const removeExpired = async (googleGroupClient, expiredMembers) => {
 
     if (!success) numFailed++;
 
-    // await sendRemovingEmail(expiredMember);
+    await sendRemovingEmail(expiredMember);
   }
 
   if (numFailed > 0)
@@ -258,8 +258,6 @@ const main = async (message, context) => {
 
   console.log("Calculating expired members...");
   const expiredMembers = await getExpiredMembers(membersFromGroup, membersInDb);
-
-  console.log(expiredMembers);
 
   console.log(`Removing ${expiredMembers.length} expired members...`);
   await removeExpired(googleGroupClient, expiredMembers);
