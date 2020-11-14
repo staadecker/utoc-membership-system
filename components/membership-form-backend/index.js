@@ -327,6 +327,8 @@ const main = async (unParsedRequest) => {
   console.log("Validating request...");
   const request = validateAndParseRequest(unParsedRequest);
 
+  console.log(`Request for: ${request.email}`);
+
   console.log(
     "Initializing clients for Google Group API, PayPal API, Google Sheets API & SendGrid API"
   );
