@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "cross-env ENVIRONMENT=development functions-framework --target=main --signature-type=event",
+    "start-prod": "cross-env ENVIRONMENT=production functions-framework --target=main --signature-type=event",
     "test": "jest"
     },
   "author": "Martin Staadecker",
