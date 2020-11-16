@@ -152,16 +152,37 @@ const getGoogleGroupClient = async () => {
 
 // region OPERATIONS
 /**
+ * Queries the Google Admin API to get a list of all the members in the mailing list
+ * https://developers.google.com/admin-sdk/directory/v1/reference/members/list
+ *
+ * May require multiple queries since the maximum number of members returned per query is 200.
+ *
  * @return {Promise<*[]|*>} A list of email addresses of everyone in the Google Group
  */
 const getMembersInGroup = async (googleGroupClient) => {
-  const res = await googleGroupClient.members.list({
-    groupKey: Config.googleGroupEmail,
-  });
+  const pageSize = 200; // Maximum possible page size
+  let pageToken;
+  let emails = [];
 
-  if (!res.data.members) return []; // If no members don't try map() and just return empty list
+  // while there are more pages, get members on page, add to list and repeat for next page
+  do {
+    const res = await googleGroupClient.members.list({
+      groupKey: Config.googleGroupEmail,
+      maxResults: pageSize,
+      pageToken,
+    });
 
-  return res.data.members.map((m) => parseEmailForComparing(m.email));
+    pageToken = res.data.nextPageToken; // set the token to the next page
+
+    if (!res.data.members) continue; // If no members don't try map()
+
+    const emailsForPage = res.data.members.map((m) =>
+      parseEmailForComparing(m.email) // makes emails lower case and removes . in gmail addresses
+    );
+    emails = emails.concat(emailsForPage); // append to list of all emails
+  } while (pageToken !== undefined);
+
+  return emails;
 };
 
 /**
