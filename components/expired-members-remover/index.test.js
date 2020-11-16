@@ -1,8 +1,8 @@
-const { getName } = require("./index");
+const { getName, parseEmailForComparing } = require("./index");
 
 describe("all tests", () => {
   it("getName", () => {
-    test_data = [
+    const test_data = [
       { input: undefined, expected: "" },
       { input: { firstName: "", lastName: "" }, expected: "" },
       { input: { firstName: "Joe Ann", lastName: "" }, expected: "Joe" },
@@ -13,4 +13,18 @@ describe("all tests", () => {
         expect(getName(test_case.input)).toBe(test_case.expected);
     }
   });
+
+  it("parseEmails", () => {
+    const test_data = [
+      { input: "smith.jo.hn@gmail.com", expected: "smithjohn@gmail.com" },
+      { input: "smithjohn@gmail.com", expected: "smithjohn@gmail.com" },
+      { input: "smith.John@gmail.com", expected: "smithjohn@gmail.com" },
+      { input: "smithjohn@gMail.com", expected: "smithjohn@gmail.com" },
+      { input: "smith.john@outlook.com", expected: "smith.john@outlook.com" },
+    ]
+
+    for (let test_case of test_data) {
+      expect(parseEmailForComparing(test_case.input)).toBe(test_case.expected);
+    }
+  })
 });

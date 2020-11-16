@@ -82,6 +82,23 @@ const sendRemovingEmail = async (expiredMember) => {
   await sendGridClient.send(msg);
 };
 
+const parseEmailForComparing = (email) => {
+  const gmailSuffix = "@gmail.com";
+
+  // compare by making emails lower case
+  email = email.toLowerCase();
+
+  // compare by removing dots for gmail addresses since all gmails with varying dots are the same
+  // https://support.google.com/mail/answer/7436150?hl=en
+  if (email.endsWith(gmailSuffix)) {
+    let preSuffix = email.slice(0, email.length - gmailSuffix.length);
+    preSuffix = preSuffix.split(".").join("");
+    email = preSuffix + gmailSuffix;
+  }
+
+  return email;
+};
+
 // endregion
 
 // region SETUP
@@ -144,7 +161,7 @@ const getMembersInGroup = async (googleGroupClient) => {
 
   if (!res.data.members) return []; // If no members don't try map() and just return empty list
 
-  return res.data.members.map((m) => m.email.toLowerCase());
+  return res.data.members.map((m) => parseEmailForComparing(m.email));
 };
 
 /**
@@ -156,7 +173,7 @@ const readDatabase = async (googleSheet) => {
   const curTime = Date.now() / 1000;
 
   for (const { email, expiry, first_name, last_name } of rows)
-    emailsInDb[email.toLowerCase()] = {
+    emailsInDb[parseEmailForComparing(email)] = {
       expired: expiry < curTime,
       firstName: first_name,
       lastName: last_name,
@@ -229,7 +246,9 @@ const removeExpired = async (googleGroupClient, expiredMembers) => {
   }
 
   if (numFailed > 0)
-    throw new Error(`Failed to remove ${numFailed} expired member(s) from the mailing list.`);
+    throw new Error(
+      `Failed to remove ${numFailed} expired member(s) from the mailing list.`
+    );
 };
 
 // endregion
@@ -266,4 +285,4 @@ const main = async (message, context) => {
 };
 
 // Export the main function but wrapped with the error handler
-module.exports = { main: errorHandler(main), getName };
+module.exports = { main: errorHandler(main), getName, parseEmailForComparing };
