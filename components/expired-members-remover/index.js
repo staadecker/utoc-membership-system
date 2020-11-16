@@ -260,7 +260,7 @@ const main = async (message, context) => {
   const expiredMembers = await getExpiredMembers(membersFromGroup, membersInDb);
 
   console.log(`Removing ${expiredMembers.length} expired members...`);
-  await removeExpired(googleGroupClient, expiredMembers);
+  //await removeExpired(googleGroupClient, expiredMembers);
 
   console.log("Done.");
 };
