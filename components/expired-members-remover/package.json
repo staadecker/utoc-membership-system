@@ -7,22 +7,23 @@
     "start": "cross-env ENVIRONMENT=development functions-framework --target=main --signature-type=event",
     "start-prod": "cross-env ENVIRONMENT=production functions-framework --target=main --signature-type=event",
     "test": "jest"
-    },
+  },
   "author": "Martin Staadecker",
   "license": "MIT",
   "devDependencies": {
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "jest": "^26.1.0",
-    "supertest": "^4.0.2"
+    "supertest": "^6.0.1"
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^3.1.0",
     "@sendgrid/mail": "^7.2.3",
     "google-spreadsheet": "^3.0.11",
-    "googleapis": "^54.1.0"
+    "googleapis": "^65.0.0"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "collectCoverage": true
   }
 }

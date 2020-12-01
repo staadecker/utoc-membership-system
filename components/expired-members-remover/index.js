@@ -3,6 +3,8 @@ const { GoogleSpreadsheet } = require("google-spreadsheet");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const sendGridClient = require("@sendgrid/mail");
 
+const ENVIRONMENT = process.env.ENVIRONMENT;
+
 const REMOVE_EMAIL_TEMPLATE_ID = "d-b23a2ee67d8f4f78bda907112024537a";
 
 // region Constants
@@ -35,7 +37,7 @@ const Config = {
 // region HELPER FUNCTIONS
 // noinspection DuplicatedCode
 const loadConfigFromGoogleSecretManager = async () => {
-  const secretId = GCP_SECRET_ID[process.env.ENVIRONMENT];
+  const secretId = GCP_SECRET_ID[ENVIRONMENT];
 
   // we explicitly check for undefined to ensure the environment wasn't simply forgotten
   if (secretId === undefined) throw new Error("Unknown environment");
@@ -79,7 +81,7 @@ const sendRemovingEmail = async (expiredMember) => {
     dynamic_template_data: { name: expiredMember.firstName },
   };
 
-  await sendGridClient.send(msg);
+  if (ENVIRONMENT === "production") await sendGridClient.send(msg);
 };
 
 const parseEmailForComparing = (email) => {
@@ -176,8 +178,8 @@ const getMembersInGroup = async (googleGroupClient) => {
 
     if (!res.data.members) continue; // If no members don't try map()
 
-    const emailsForPage = res.data.members.map((m) =>
-      parseEmailForComparing(m.email) // makes emails lower case and removes . in gmail addresses
+    const emailsForPage = res.data.members.map(
+      (m) => parseEmailForComparing(m.email) // makes emails lower case and removes . in gmail addresses
     );
     emails = emails.concat(emailsForPage); // append to list of all emails
   } while (pageToken !== undefined);
