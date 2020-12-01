@@ -17,6 +17,6 @@
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.7.1",
     "firebase-tools": "^8.10.0",
-    "prettier": "^2.1.1"
+    "prettier": "^2.2.1"
   }
 }
