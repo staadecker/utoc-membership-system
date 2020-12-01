@@ -5,6 +5,8 @@ const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const sendGridClient = require("@sendgrid/mail");
 const { google } = require("googleapis");
 
+const ENVIRONMENT = process.env.ENVIRONMENT;
+
 // region CONSTANTS
 const MEMBERSHIP_TYPES = {
   student: {
@@ -69,7 +71,7 @@ const Config = {
 
 // region HELPER FUNCTIONS
 const loadConfigFromGoogleSecretManager = async () => {
-  const secretId = GCP_SECRET_ID[process.env.ENVIRONMENT];
+  const secretId = GCP_SECRET_ID[ENVIRONMENT];
 
   // we explicitly check for undefined to ensure the environment wasn't simply forgotten
   if (secretId === undefined) throw new Error("Unknown environment");
@@ -313,7 +315,7 @@ const sendSuccessEmail = async (email, name) => {
     dynamic_template_data: { name },
   };
 
-  await sendGridClient.send(msg);
+  if (ENVIRONMENT === "production") await sendGridClient.send(msg);
 };
 
 // endregion
