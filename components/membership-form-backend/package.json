@@ -20,7 +20,7 @@
     "@google-cloud/secret-manager": "^3.1.0",
     "@paypal/checkout-server-sdk": "^1.0.2",
     "@sendgrid/mail": "^7.2.4",
-    "google-spreadsheet": "^3.0.11",
+    "google-spreadsheet": "^3.0.14",
     "googleapis": "^59.0.0",
     "moment": "^2.27.0"
   },
