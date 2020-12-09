@@ -179,7 +179,7 @@ const getMembersInGroup = async (googleGroupClient) => {
     if (!res.data.members) continue; // If no members don't try map()
 
     const emailsForPage = res.data.members.map(
-      (m) => parseEmailForComparing(m.email) // makes emails lower case and removes . in gmail addresses
+      (m) => ({id: m.id, email: parseEmailForComparing(m.email)}) // makes emails lower case and removes . in gmail addresses
     );
     emails = emails.concat(emailsForPage); // append to list of all emails
   } while (pageToken !== undefined);
@@ -222,25 +222,25 @@ const getName = (member) => {
  *
  * Returns a dictionary where each key is an email and each value is an action (from the ACTIONS constant)
  * indicating what action needs to be done for that email
- * @param emailsInGroupArr the list of emails in the google group
+ * @param membersInGroup the list of members in the google group
  * @param emailsInDb an object where keys are the objects in the database and values are if the email is expired
  */
-const getExpiredMembers = async (emailsInGroupArr, emailsInDb) => {
-  const expiredEmails = emailsInGroupArr.filter((email) => {
-    return !emailsInDb.hasOwnProperty(email) || emailsInDb[email].expired;
+const getExpiredMembers = async (membersInGroup, emailsInDb) => {
+  const expiredEmails = membersInGroup.filter((member) => {
+    return !emailsInDb.hasOwnProperty(member.email) || emailsInDb[member.email].expired;
   });
 
-  return expiredEmails.map((email) => ({
-    email,
-    firstName: getName(emailsInDb[email]),
+  return expiredEmails.map((member) => ({
+    ...member,
+    firstName: getName(emailsInDb[member.email]),
   }));
 };
 
-const removeUserFromGoogleGroup = async (googleGroupClient, email) => {
+const removeUserFromGoogleGroup = async (googleGroupClient, memberId) => {
   try {
     await googleGroupClient.members.delete({
       groupKey: Config.googleGroupEmail,
-      memberKey: email,
+      memberKey: memberId,
     });
   } catch (e) {
     console.error(e);
@@ -260,7 +260,7 @@ const removeExpired = async (googleGroupClient, expiredMembers) => {
     console.log(`Removing ${expiredMember.email} from group...`);
     const success = await removeUserFromGoogleGroup(
       googleGroupClient,
-      expiredMember.email
+      expiredMember.id
     );
 
     if (!success) numFailed++;
