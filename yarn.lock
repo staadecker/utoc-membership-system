@@ -374,10 +374,10 @@
     p-defer "^3.0.0"
     protobufjs "^6.8.1"
 
-"@google-cloud/pubsub@^2.5.0":
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/@google-cloud/pubsub/-/pubsub-2.6.0.tgz#e281c2c11744ee4593bad485127299c0db4f1543"
-  integrity sha512-NfF35l8Hi9k2BqrjweR4HWmfL4U3jL3HrX+rp46vEqjFgD+l7JXw4k4KpEzDYvFhHu3SxjH5e18+yW1b4/6hsA==
+"@google-cloud/pubsub@^2.7.0":
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/@google-cloud/pubsub/-/pubsub-2.7.0.tgz#b5c9cf776cbccb5a2c6594318934c14eab7de405"
+  integrity sha512-wc/XOo5Ibo3GWmuaLu80EBIhXSdu2vf99HUqBbdsSSkmRNIka2HqoIhLlOFnnncQn0lZnGL7wtKGIDLoH9LiBg==
   dependencies:
     "@google-cloud/paginator" "^3.0.0"
     "@google-cloud/precise-date" "^2.0.0"
@@ -390,7 +390,7 @@
     arrify "^2.0.0"
     extend "^3.0.2"
     google-auth-library "^6.1.2"
-    google-gax "^2.7.0"
+    google-gax "^2.9.2"
     is-stream-ended "^0.1.4"
     lodash.snakecase "^4.1.1"
     p-defer "^3.0.0"
@@ -3098,7 +3098,7 @@ google-gax@^1.14.2:
     semver "^6.0.0"
     walkdir "^0.4.0"
 
-google-gax@^2.7.0, google-gax@^2.9.2:
+google-gax@^2.9.2:
   version "2.9.2"
   resolved "https://registry.yarnpkg.com/google-gax/-/google-gax-2.9.2.tgz#780b2c0fc031c864007e1e198a9b90c7e946cca0"
   integrity sha512-Pve4osEzNKpBZqFXMfGKBbKCtgnHpUe5IQMh5Ou+Xtg8nLcba94L3gF0xgM5phMdGRRqJn0SMjcuEVmOYu7EBg==
