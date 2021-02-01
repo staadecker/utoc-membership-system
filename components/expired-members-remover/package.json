@@ -20,7 +20,7 @@
     "@google-cloud/secret-manager": "^3.4.0",
     "@sendgrid/mail": "^7.2.3",
     "google-spreadsheet": "^3.0.11",
-    "googleapis": "^66.0.0"
+    "googleapis": "^67.0.0"
   },
   "jest": {
     "testEnvironment": "node",
