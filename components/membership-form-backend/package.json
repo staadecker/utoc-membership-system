@@ -21,7 +21,7 @@
     "@paypal/checkout-server-sdk": "^1.0.2",
     "@sendgrid/mail": "^7.4.2",
     "google-spreadsheet": "^3.0.11",
-    "googleapis": "^73.0.0",
+    "googleapis": "^74.2.0",
     "moment": "^2.27.0"
   },
   "jest": {
