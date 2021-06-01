@@ -7,6 +7,6 @@
     "start": "functions-framework --target=main"
   },
   "dependencies": {
-    "@google-cloud/pubsub": "^2.10.0"
+    "@google-cloud/pubsub": "^2.12.0"
   }
 }
