@@ -19,7 +19,7 @@
   "dependencies": {
     "@google-cloud/secret-manager": "^3.6.0",
     "@paypal/checkout-server-sdk": "^1.0.2",
-    "@sendgrid/mail": "^7.4.2",
+    "@sendgrid/mail": "^7.4.4",
     "google-spreadsheet": "^3.0.11",
     "googleapis": "^73.0.0",
     "moment": "^2.27.0"
