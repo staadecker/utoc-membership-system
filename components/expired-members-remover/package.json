@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^3.7.1",
-    "@sendgrid/mail": "^7.4.4",
+    "@sendgrid/mail": "^7.4.5",
     "google-spreadsheet": "^3.0.11",
     "googleapis": "^74.2.0"
   },
