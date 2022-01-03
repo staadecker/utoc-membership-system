@@ -17,7 +17,7 @@ This is why we use the middleware which makes use of the asynchronous Pub/Sub sy
 
 There isn't much to test in such a simple function, however one can deploy it to the test project and verify that
 it forwards all the frontend request data. Use `yarn workspace membership-form-backend-trigger deploy` to deploy
-the function to the test project.
+the function to the test project. To test locally run `yarn workspace membership-form-backend-trigger start`
 
 ## Deploying
 
