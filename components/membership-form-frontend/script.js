@@ -1,9 +1,7 @@
 /** CONSTANTS **/
 const PRICING = {
-  student: 20,
-  regular: 30,
-  family: 40,
-  summer: 10,
+  student: 25,
+  regular: 40,
 };
 
 /* Import the PayPal SDK */

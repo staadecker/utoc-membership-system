@@ -11,23 +11,13 @@ const ENVIRONMENT = process.env.ENVIRONMENT;
 const MEMBERSHIP_TYPES = {
   student: {
     allowAutomatic: true,
-    amount: 20,
+    amount: 25,
     months: 12,
   },
   regular: {
     allowAutomatic: true,
-    amount: 30,
-    months: 12,
-  },
-  family: {
-    allowAutomatic: true,
     amount: 40,
     months: 12,
-  },
-  summer: {
-    allowAutomatic: true,
-    amount: 10,
-    months: 4,
   },
   lifetime: {
     allowAutomatic: false,
