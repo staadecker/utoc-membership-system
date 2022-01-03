@@ -311,12 +311,13 @@
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.2.tgz#30aa825f11d438671d585bd44e7fd564535fc210"
   integrity sha512-82cpyJyKRoQoRi+14ibCeGPu0CwypgtBAdBhq1WfvagpCZNKqwXbKwXllYSMG91DhmG4jt9gN8eP6lGOtozuaw==
 
-"@google-cloud/functions-framework@^1.7.1":
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/@google-cloud/functions-framework/-/functions-framework-1.10.0.tgz#8b103403627f955093f848524b546ce3a8143a67"
-  integrity sha512-AADKaLdasaFj9tcPmFChvTS4HDiZBKQg8Ke1FWbtP3HBOTkL/qaJTs08nh4aE2086FM7bUta4JaQAEXNmEPKXA==
+"@google-cloud/functions-framework@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@google-cloud/functions-framework/-/functions-framework-2.1.0.tgz#ef50738dca41dbd926c6b6a17e437a098ac3e3cc"
+  integrity sha512-ajW6gIhsSZeHArSTvWmELoUkz27aLHEP/bD9GIapgMcb6q9TlR8CkIYti9Pyss5D6YrvTcs4k2ah/zz2hEUgEg==
   dependencies:
     body-parser "^1.18.3"
+    cloudevents "^5.1.0"
     express "^4.16.4"
     minimist "^1.2.5"
     on-finished "^2.3.0"
@@ -938,7 +939,7 @@ aggregate-error@^3.0.0:
     clean-stack "^2.0.0"
     indent-string "^4.0.0"
 
-ajv@^6.12.2, ajv@^6.12.3, ajv@^6.12.6:
+ajv@^6.12.2, ajv@^6.12.3, ajv@^6.12.6, ajv@~6.12.3:
   version "6.12.6"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.12.6.tgz#baf5a62e802b07d977034586f8c3baf5adf26df4"
   integrity sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==
@@ -1769,6 +1770,14 @@ clone@^1.0.2:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/clone/-/clone-1.0.4.tgz#da309cc263df15994c688ca902179ca3c7cd7c7e"
   integrity sha1-2jCcwmPfFZlMaIypAheco8fNfH4=
+
+cloudevents@^5.1.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/cloudevents/-/cloudevents-5.2.0.tgz#2e4b72db04d409d814841c8fb9b4032bd90e3b5d"
+  integrity sha512-khYLL5qYImCuVBy9ki8c+twY37lWGu4e3Zr018VyZN+1Zj2McURCLGBx5SalAdeGV1RJE5hT8lxgcEwv9JbdxA==
+  dependencies:
+    ajv "~6.12.3"
+    uuid "~8.3.0"
 
 co@^4.6.0:
   version "4.6.0"
@@ -7024,7 +7033,7 @@ uuid@^3.0.0, uuid@^3.3.2:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
   integrity sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==
 
-uuid@^8.0.0, uuid@^8.3.0, uuid@^8.3.2:
+uuid@^8.0.0, uuid@^8.3.0, uuid@^8.3.2, uuid@~8.3.0:
   version "8.3.2"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
   integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
