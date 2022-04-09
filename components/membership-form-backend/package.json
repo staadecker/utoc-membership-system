@@ -22,7 +22,7 @@
     "@sendgrid/mail": "^7.4.4",
     "google-spreadsheet": "^3.0.11",
     "googleapis": "^74.2.0",
-    "moment": "^2.27.0"
+    "moment": "^2.29.2"
   },
   "jest": {
     "testEnvironment": "node",
