@@ -35,9 +35,10 @@ function toPaymentTab() {
       },
       createOrder: function (data, actions) {
         const typeDropdown = document.getElementById("membership_type");
-        const value = PRICING[
-          typeDropdown.options[typeDropdown.selectedIndex].value
-        ].toString();
+        const value =
+          PRICING[
+            typeDropdown.options[typeDropdown.selectedIndex].value
+          ].toString();
         return actions.order.create({
           purchase_units: [{ amount: { value } }],
         });

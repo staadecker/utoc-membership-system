@@ -230,10 +230,8 @@ const validatePayment = async (orderID, payPalClient, expectedPayment) => {
   );
 
   if (expectedPayment !== authorizedPayment) {
-    console.log(
-      `Received payment (${authorizedPayment}$) doesn't match expected payment (${expectedPayment}$).`
-    );
-    throw new Error("Received payment doesn't match expected payment.");
+    throw new Error(`Received payment (${authorizedPayment}$) doesn't match expected payment (${expectedPayment}$). 
+    The webmaster should reach out to the member to help them retry the payment.`);
   }
 };
 

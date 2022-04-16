@@ -10,7 +10,7 @@ describe("all tests", () => {
     ];
 
     for (let test_case of test_data) {
-        expect(getName(test_case.input)).toBe(test_case.expected);
+      expect(getName(test_case.input)).toBe(test_case.expected);
     }
   });
 
@@ -21,10 +21,10 @@ describe("all tests", () => {
       { input: "smith.John@gmail.com", expected: "smithjohn@gmail.com" },
       { input: "smithjohn@gMail.com", expected: "smithjohn@gmail.com" },
       { input: "smith.john@outlook.com", expected: "smith.john@outlook.com" },
-    ]
+    ];
 
     for (let test_case of test_data) {
       expect(parseEmailForComparing(test_case.input)).toBe(test_case.expected);
     }
-  })
+  });
 });

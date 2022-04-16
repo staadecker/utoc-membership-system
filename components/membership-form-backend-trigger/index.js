@@ -9,9 +9,15 @@ module.exports.main = async (req, res) => {
     console.log("Received request.");
 
     console.log("Publishing request body to Pub/Sub...");
-    await pubSubClient
-      .topic(TOPIC_NAME)
-      .publish(Buffer.from(JSON.stringify(req.body), "utf8"));
+    await pubSubClient.topic(TOPIC_NAME).publish(
+      Buffer.from(
+        JSON.stringify({
+          additionalInfo: { ip: req.ip, ...req.headers },
+          ...req.body,
+        }),
+        "utf8"
+      )
+    );
 
     console.log("Redirecting to welcome page...");
     // We don't use res.redirect since that would redirect only the iFrame not the entire page

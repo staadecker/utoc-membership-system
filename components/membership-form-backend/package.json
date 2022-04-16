@@ -13,7 +13,7 @@
   "devDependencies": {
     "cross-env": "^7.0.2",
     "express": "^4.17.1",
-    "jest": "^26.1.0",
+    "jest": "^27.5.1",
     "supertest": "^6.0.1"
   },
   "dependencies": {
@@ -21,7 +21,7 @@
     "@paypal/checkout-server-sdk": "^1.0.2",
     "@sendgrid/mail": "^7.4.4",
     "google-spreadsheet": "^3.0.11",
-    "googleapis": "^74.2.0",
+    "googleapis": "^100.0.0",
     "moment": "^2.29.2"
   },
   "jest": {
