@@ -61,14 +61,16 @@ const loadConfigFromGoogleSecretManager = async () => {
 /**
  * Useful to avoid unhandled promise rejection errors
  */
-const errorHandler = (func) => async (...args) => {
-  try {
-    await func(...args);
-  } catch (e) {
-    console.error(e);
-    throw e;
-  }
-};
+const errorHandler =
+  (func) =>
+  async (...args) => {
+    try {
+      await func(...args);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
 
 const sendRemovingEmail = async (expiredMember) => {
   const msg = {
@@ -179,7 +181,7 @@ const getMembersInGroup = async (googleGroupClient) => {
     if (!res.data.members) continue; // If no members don't try map()
 
     const emailsForPage = res.data.members.map(
-      (m) => ({id: m.id, email: parseEmailForComparing(m.email)}) // makes emails lower case and removes . in gmail addresses
+      (m) => ({ id: m.id, email: parseEmailForComparing(m.email) }) // makes emails lower case and removes . in gmail addresses
     );
     emails = emails.concat(emailsForPage); // append to list of all emails
   } while (pageToken !== undefined);
@@ -227,7 +229,10 @@ const getName = (member) => {
  */
 const getExpiredMembers = async (membersInGroup, emailsInDb) => {
   const expiredEmails = membersInGroup.filter((member) => {
-    return !emailsInDb.hasOwnProperty(member.email) || emailsInDb[member.email].expired;
+    return (
+      !emailsInDb.hasOwnProperty(member.email) ||
+      emailsInDb[member.email].expired
+    );
   });
 
   return expiredEmails.map((member) => ({
