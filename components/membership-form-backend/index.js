@@ -206,6 +206,7 @@ const validateAndParseRequest = (body) => {
   return {
     ...body,
     manual_sign_up_password: undefined, // erase the password from the body to avoid writing it to database
+    additionalInfo: undefined, // erase the headers from the body to avoid writing it to the database
     payment_amount: membershipType.amount, // add the amount to the body to be included in db, may be undefined
     payment_method: paymentMethod,
     duration_months: membershipType.months,
