@@ -38,7 +38,7 @@ const last = (array) => array[array.length - 1];
 jest.mock("@paypal/checkout-server-sdk", () => {
   const mocks = {
     getOrderAmount: jest.fn(() => {
-      return "20";
+      return "25";
     }),
     buildClient: jest.fn(),
     captureRequest: jest.fn(),
