@@ -7,7 +7,7 @@ steps:
       - --source=./components/expired-members-remover
       - --region=northamerica-northeast1
       - --entry-point=main
-      - --runtime=nodejs10
+      - --runtime=nodejs20
       - --trigger-topic=expired-members-remover
       - --timeout=300 # 5 minute timeout
 # The following lines should be used only when creating the function

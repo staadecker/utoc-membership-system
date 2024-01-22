@@ -7,7 +7,7 @@ steps:
       - --source=./components/membership-form-backend-trigger
       - --region=northamerica-northeast1
       - --entry-point=main
-      - --runtime=nodejs10
+      - --runtime=nodejs20
       - --trigger-http
 # The following lines should be used only when creating the function
 #      - --allow-unauthenticated # requires Security Admin permissions

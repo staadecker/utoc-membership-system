@@ -71,3 +71,5 @@ Run `npm run deploy`.
 - `Missing parameter '' in Google Sheet database header`: The Google sheets database doesn't have a column for that parameter and therefore that data was lost.
 
 - `Getting metadata from plugin failed with error: invalid_grant`: You likely have not run `npm run auth` recently.
+  
+- `Email sending failing in unittests`: Temporarily remove the environment filter in the `sendSuccessEmail` function.
