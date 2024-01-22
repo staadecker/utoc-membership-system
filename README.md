@@ -1,6 +1,6 @@
 # UTOC Membership System
 
-While serving as Webmaster for the University of Toronto Outing Club (UTOC), I built this system to track and manage the club's members. As of fall 2023, the system is still in use and allows UTOC to contact members via a mailing list, accept membership payments online, and automatically remind people to renew their memberships upon expiry.
+While serving as Webmaster for the University of Toronto Outing Club (UTOC), I built this system to track and manage the club's members. As of Winter 2024, the system is still in use and allows UTOC to contact members via a mailing list, accept membership payments online, and automatically remind people to renew their memberships upon expiry.
 
 The entire system is open source, available in this repository, and runs completely free since it does not exceed UTOC's Google Cloud Platform's free quotas.
 
