@@ -2,6 +2,7 @@ const { google } = require("googleapis");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const sendGridClient = require("@sendgrid/mail");
+const { JWT } = require("google-auth-library");
 
 const ENVIRONMENT = process.env.ENVIRONMENT;
 
@@ -112,12 +113,16 @@ const parseEmailForComparing = (email) => {
  * Authentication is performed through credentials stored in GCP Secret manager
  */
 const getGoogleSheet = async () => {
-  const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
-
-  await doc.useServiceAccountAuth({
-    client_email: Config.gSheetsServiceAccountEmail,
-    private_key: Config.gSheetsServiceAccountPrivateKey,
+  const serviceAccount = new JWT({
+    email: Config.gSheetsServiceAccountEmail,
+    key: Config.gSheetsServiceAccountPrivateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
+
+  const doc = new GoogleSpreadsheet(
+    Config.databaseSpreadsheetId,
+    serviceAccount
+  );
 
   await doc.loadInfo();
 
