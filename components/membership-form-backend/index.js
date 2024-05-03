@@ -4,6 +4,7 @@ const moment = require("moment");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const sendGridClient = require("@sendgrid/mail");
 const { google } = require("googleapis");
+const { JWT } = require("google-auth-library");
 
 const ENVIRONMENT = process.env.ENVIRONMENT;
 
@@ -124,12 +125,16 @@ const getPayPalClient = () => {
  * Authentication is performed through credentials stored in GCP Secret manager
  */
 const getGoogleSheet = async () => {
-  const doc = new GoogleSpreadsheet(Config.databaseSpreadsheetId);
-
-  await doc.useServiceAccountAuth({
-    client_email: Config.gSheetsServiceAccountEmail,
-    private_key: Config.gSheetsServiceAccountPrivateKey,
+  const serviceAccount = new JWT({
+    email: Config.gSheetsServiceAccountEmail,
+    key: Config.gSheetsServiceAccountPrivateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
+
+  const doc = new GoogleSpreadsheet(
+    Config.databaseSpreadsheetId,
+    serviceAccount
+  );
 
   await doc.loadInfo();
 
@@ -267,10 +272,15 @@ const writeAccountToDatabase = async (requestBody, sheet) => {
 
   // Check to verify that all of 'data' was actually added (and hence returned in row)
   Object.keys(data).forEach((key) => {
-    if (data[key] !== undefined && row[key] === undefined)
-      throw new Error(
-        `Missing parameter '${key}' in Google Sheet database header.`
-      );
+    if (data[key] !== undefined) {
+      try {
+        row.get(key);
+      } catch (e) {
+        throw new Error(
+          `Missing parameter '${key}' in Google Sheet database header.`
+        );
+      }
+    }
   });
 };
 

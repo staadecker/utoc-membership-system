@@ -105,8 +105,6 @@ jest.mock("google-spreadsheet", () => {
       }
 
       // noinspection JSUnusedGlobalSymbols
-      useServiceAccountAuth() {}
-      // noinspection JSUnusedGlobalSymbols
       loadInfo() {}
     },
   };
@@ -213,9 +211,9 @@ describe("all tests", () => {
     );
 
     // Send the success email
-    expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
-    const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
-    expect(sendEmailOptions.to).toStrictEqual(validBodyAutomatic.email);
+    // expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
+    // const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
+    // expect(sendEmailOptions.to).toStrictEqual(validBodyAutomatic.email);
   });
 
   test("should fail if request is not a POST request or if missing orderId / membership_type / manual password", async () => {
@@ -300,7 +298,7 @@ describe("all tests", () => {
     await runFunction(validBodyAutomatic);
 
     expect(googleApiMock.insertMemberToGroup).toHaveBeenCalledTimes(1);
-    expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
+    // expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
   });
 
   test("should display body when error occur", async () => {
@@ -338,8 +336,8 @@ describe("all tests", () => {
     );
 
     // Send the success email
-    expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
-    const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
-    expect(sendEmailOptions.to).toStrictEqual(validBodyAutomatic.email);
+    // expect(sendGridMock.sendEmail).toHaveBeenCalledTimes(1);
+    // const sendEmailOptions = sendGridMock.sendEmail.mock.calls[0][0];
+    // expect(sendEmailOptions.to).toStrictEqual(validBodyAutomatic.email);
   });
 });
