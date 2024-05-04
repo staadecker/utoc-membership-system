@@ -202,11 +202,11 @@ const readDatabase = async (googleSheet) => {
   const emailsInDb = {};
   const curTime = Date.now() / 1000;
 
-  for (const { email, expiry, first_name, last_name } of rows)
-    emailsInDb[parseEmailForComparing(email)] = {
-      expired: expiry < curTime,
-      firstName: first_name,
-      lastName: last_name,
+  for (const row of rows)
+    emailsInDb[parseEmailForComparing(row.get("email"))] = {
+      expired: row.get("expiry") < curTime,
+      firstName: row.get("first_name"),
+      lastName: row.get("last_name"),
     };
 
   return emailsInDb;
