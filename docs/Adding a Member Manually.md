@@ -7,7 +7,7 @@ using a password. Here's how.
 
 ## Steps
 
-1. Retrieve the `manual_sign_up_password` from Google Secret Manager.
+1. Retrieve the special password. This can be found in the Google Cloud Secret manager under `membership-form-backend-config` -> `manual_sign_up_password`.
 
 2. Download [Postman](https://www.postman.com/downloads/) or use the web version.
 
@@ -25,9 +25,11 @@ using a password. Here's how.
     "program_and_college": "EngSci",
     "email": "test@utoc.ca",
     "membership_type": "student",
-    "manual_sign_up_password": "Password from GCP Secret Manager",
+    "manual_sign_up_password": "Password from step 1",
     "comments": "Some comment"
 }
 ```
 
-5. Submit the request
+5. Modify the names, emails, etc. and then submit the request.
+
+6. Check that the new member is successfully in the Google Sheet database.
